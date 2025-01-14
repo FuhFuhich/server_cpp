@@ -28,7 +28,7 @@ void start_server()
 	{
 		server_active = true;
 		server_process = std::make_unique<process::child>(
-			process::search_path("server_cpp"), // Исполняемый файл
+			process::search_path("server"), // Исполняемый файл
 			process::std_out > output_file_path,
 			process::std_err > output_file_path,
 			process::start_dir = project_path
