@@ -19,20 +19,30 @@ using tcp = asio::ip::tcp;
 
 std::atomic<bool> server_active(false);
 std::unique_ptr<process::child> server_process = nullptr;
-std::string project_path = filesystem::current_path().string();
+std::string project_path = (filesystem::current_path().parent_path() / "server" / "x64" / "Debug").string();
 std::string output_file_path = "server_output.txt";
 
 void start_server()
 {
 	if (!server_active)
 	{
-		server_active = true;
-		server_process = std::make_unique<process::child>(
-			process::search_path("server"), // Исполняемый файл
-			process::std_out > output_file_path,
-			process::std_err > output_file_path,
-			process::start_dir = project_path
-		);
+		if (!filesystem::exists(project_path + "/server")) {
+			std::cerr << "Error: server executable not found at " << project_path << std::endl;
+			return;
+		}
+
+		try {
+			server_process = std::make_unique<process::child>(
+				process::search_path("server"),
+				process::std_out > output_file_path,
+				process::std_err > output_file_path,
+				process::start_dir = project_path
+			);
+		}
+		catch (const std::exception& e) {
+			std::cerr << "Failed to start server: " << e.what() << std::endl;
+			server_active = false;
+		}
 	}
 }
 
@@ -87,6 +97,7 @@ std::string read_logs()
 
 void handle_request(http::request<http::string_body>& req, http::response<http::string_body>& res)
 {
+	std::cout << ":ghuerwihwriguw";
 	if (req.target() == "/turn_on")
 	{
 		pull_and_restart();
@@ -142,6 +153,7 @@ void server_thread(asio::io_context& ioc, unsigned short port)
 
 int main()
 {
+	std::cout << "Current Directory: " << project_path << std::endl;
 	const unsigned short port = 5400;
 
 	std::ofstream(output_file_path).close();
