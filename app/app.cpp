@@ -26,12 +26,8 @@ void start_server()
 {
 	if (!server_active)
 	{
-		if (!filesystem::exists(project_path + "/server")) {
-			std::cerr << "Error: server executable not found at " << project_path << std::endl;
-			return;
-		}
-
-		try {
+		try 
+		{
 			server_process = std::make_unique<process::child>(
 				process::search_path("server"),
 				process::std_out > output_file_path,
@@ -39,8 +35,9 @@ void start_server()
 				process::start_dir = project_path
 			);
 		}
-		catch (const std::exception& e) {
-			std::cerr << "Failed to start server: " << e.what() << std::endl;
+		catch (const std::exception& e) 
+		{
+			std::cerr << "Failed to start server: " << e.what() << "\n";
 			server_active = false;
 		}
 	}
@@ -48,28 +45,44 @@ void start_server()
 
 void stop_server()
 {
-	if (server_active && server_process && server_process->running())
+	try
 	{
-		server_process->terminate();
+		if (server_active && server_process && server_process->running())
+		{
+			server_process->terminate();
+			server_active = false;
+		}
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "Failed to stop server: " << e.what() << "\n";
 		server_active = false;
 	}
 }
 
 bool has_changes()
 {
-	process::ipstream fetch_output;
-	process::system("git fetch", process::std_out > fetch_output);
-	process::ipstream local_output, remote_output;
-	std::ostringstream local_head, remote_head;
+	try
+	{
+		process::ipstream fetch_output;
+		process::system("git fetch", process::std_out > fetch_output);
+		process::ipstream local_output, remote_output;
+		std::ostringstream local_head, remote_head;
 
-	process::system("git rev-parse HEAD", process::std_out > local_output);
-	process::system("git rev-parse FETCH_HEAD", process::std_out > remote_output);
+		process::system("git rev-parse HEAD", process::std_out > local_output);
+		process::system("git rev-parse FETCH_HEAD", process::std_out > remote_output);
 
-	// Чтение вывода из потоков
-	local_head << local_output.rdbuf();
-	remote_head << remote_output.rdbuf();
+		// Чтение вывода из потоков
+		local_head << local_output.rdbuf();
+		remote_head << remote_output.rdbuf();
 
-	return local_head.str() != remote_head.str();
+		return local_head.str() != remote_head.str();
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "Failed to has_changes: " << e.what() << "\n";
+		server_active = false;
+	}
 }
 
 void pull_and_restart()
@@ -97,7 +110,6 @@ std::string read_logs()
 
 void handle_request(http::request<http::string_body>& req, http::response<http::string_body>& res)
 {
-	std::cout << ":ghuerwihwriguw";
 	if (req.target() == "/turn_on")
 	{
 		pull_and_restart();
@@ -134,6 +146,7 @@ void server_thread(asio::io_context& ioc, unsigned short port)
 	tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), port));
 	while (true)
 	{
+		std::cout << "nya\n";
 		tcp::socket socket(ioc);
 		acceptor.accept(socket);
 
@@ -153,6 +166,7 @@ void server_thread(asio::io_context& ioc, unsigned short port)
 
 int main()
 {
+	setlocale(0, "");
 	std::cout << "Current Directory: " << project_path << std::endl;
 	const unsigned short port = 5400;
 
