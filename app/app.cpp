@@ -8,6 +8,7 @@
 #include <sstream>
 #include <atomic>
 #include <iostream>
+#include <string>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -17,14 +18,33 @@ namespace filesystem = boost::filesystem;
 
 using tcp = asio::ip::tcp;
 
-std::atomic<bool> server_active(false);
+std::atomic<bool> server_status(false);
 std::unique_ptr<process::child> server_process = nullptr;
 std::string project_path = (filesystem::current_path().parent_path() / "server" / "x64" / "Debug").string();
-std::string output_file_path = "server_output.txt";
+std::string output_file_path = (filesystem::current_path().parent_path() / "server" / "server_output.txt").string();
+
+// Рекурсивный поиск файла по названию файла
+void find_file(filesystem::path& directory, const std::string& filename)
+{
+	try
+	{
+		for (const auto& entry : filesystem::recursive_directory_iterator(directory))
+		{
+			if (entry.is_regular_file() && entry.path().filename() == filename)
+			{
+				directory = entry.path();
+			}
+		}
+	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "Failed in find_file: " << e.what() << "\n";
+	}
+}
 
 void start_server()
 {
-	if (!server_active)
+	if (!server_status)
 	{
 		try 
 		{
@@ -34,11 +54,13 @@ void start_server()
 				process::std_err > output_file_path,
 				process::start_dir = project_path
 			);
+
+			std::cout << "Server is started\n";
 		}
 		catch (const std::exception& e) 
 		{
 			std::cerr << "Failed to start server: " << e.what() << "\n";
-			server_active = false;
+			server_status = false;
 		}
 	}
 }
@@ -47,16 +69,17 @@ void stop_server()
 {
 	try
 	{
-		if (server_active && server_process && server_process->running())
+		if (server_status && server_process && server_process->running())
 		{
 			server_process->terminate();
-			server_active = false;
+			server_status = false;
+			std::cout << "Server is stoped\n";
 		}
 	}
 	catch (const std::exception& e)
 	{
 		std::cerr << "Failed to stop server: " << e.what() << "\n";
-		server_active = false;
+		server_status = false;
 	}
 }
 
@@ -81,7 +104,7 @@ bool has_changes()
 	catch (const std::exception& e)
 	{
 		std::cerr << "Failed to has_changes: " << e.what() << "\n";
-		server_active = false;
+		server_status = false;
 	}
 }
 
@@ -131,7 +154,7 @@ void handle_request(http::request<http::string_body>& req, http::response<http::
 	else if (req.target() == "/get_status")
 	{
 		res.result(http::status::ok);
-		res.body() = server_active ? "Active" : "Inactive";
+		res.body() = server_status ? "Active" : "Inactive";
 	}
 	else
 	{
@@ -146,7 +169,6 @@ void server_thread(asio::io_context& ioc, unsigned short port)
 	tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), port));
 	while (true)
 	{
-		std::cout << "nya\n";
 		tcp::socket socket(ioc);
 		acceptor.accept(socket);
 
@@ -167,8 +189,12 @@ void server_thread(asio::io_context& ioc, unsigned short port)
 int main()
 {
 	setlocale(0, "");
-	std::cout << "Current Directory: " << project_path << std::endl;
+	std::cout << "logFile path: " << output_file_path << "\n";
+	std::cout << "Current Directory: " << project_path << "\n";
 	const unsigned short port = 5400;
+
+	filesystem::path directory = filesystem::current_path().parent_path();
+	std::string filename = "server.exe";
 
 	std::ofstream(output_file_path).close();
 
@@ -182,11 +208,11 @@ int main()
 		try
 		{
 			pull_and_restart();
-			std::cout << "Pull and restart successful." << std::endl;
+			std::cout << "Pull and restart successful." << "\n";
 		}
 		catch (const std::exception& e)
 		{
-			std::cerr << "Error: " << e.what() << std::endl;
+			std::cerr << "Error: " << e.what() << "\n";
 		}
 
 		std::this_thread::sleep_for(std::chrono::minutes(5));

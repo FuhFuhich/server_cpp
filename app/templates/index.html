@@ -31,7 +31,10 @@
 
     <script>
         fetch('http://localhost:5400/turn_on')
-        
+        fetch('http://localhost:5400/turn_off')
+        fetch('http://localhost:5400/get_logs')
+        fetch('http://localhost:5400/get_status')
+
         function updateStatus(status) {
             const statusElement = document.getElementById('status');
             statusElement.textContent = `Статус сервера: ${status}`;

@@ -1,6 +1,10 @@
 ﻿#include <boost/asio.hpp>
 
 #include <iostream>
+#include <fstream>
+#include <boost/filesystem.hpp>
+#include <boost/process.hpp>
+#include <chrono>
 
 using boost::asio::ip::tcp;
 
@@ -8,19 +12,42 @@ class Server
 {
 private:
 	tcp::acceptor acceptor_;
+	std::ofstream log_file_;
 
 public:
-	Server(boost::asio::io_context& io_context, short port)
+	Server() = delete;
+	Server(boost::asio::io_context& io_context, const short& port)
 		: acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
 	{
 		try
 		{
+			log_file_.open("server_output.txt", std::ios::app);
+			log_file_.setf(std::ios::unitbuf); // Убираем буфферизацию при записи в файл
+
+			if (!log_file_.is_open())
+			{
+				throw std::runtime_error("Failed to open log file.");
+			}
+
 			start_accept();
 		}
 		catch (const std::exception& e)
 		{
-			std::cerr << "Exception in SERVER constructor: " << e.what() << "\n";
+			log_file_ << "Exception in SERVER constructor: " << e.what() << "\n";
 		}
+	}
+
+	~Server()
+	{
+		if (log_file_.is_open())
+		{
+			log_file_.close();
+		}
+	}
+
+	std::ofstream& get_log_file()
+	{
+		return log_file_;
 	}
 
 private:
@@ -28,7 +55,8 @@ private:
 	{
 		try
 		{
-			std::cout << "start_accept()...\n";
+			log_file_ << "Client is connected\n";
+
 			auto socket = std::make_shared<tcp::socket>(acceptor_.get_executor());
 
 			acceptor_.async_accept(*socket,
@@ -36,12 +64,12 @@ private:
 				{
 					if (!ec)
 					{
-						std::cout << "Client is connected\n";
+						log_file_ << "Client is connected\n";
 						start_read(socket);
 					}
 					else
 					{
-						std::cerr << "Error accepting client: " << ec.message() << "\n";
+						log_file_ << "Error accepting client: " << ec.message() << "\n";
 					}
 
 					start_accept();
@@ -49,7 +77,7 @@ private:
 		}
 		catch (const std::exception& e)
 		{
-			std::cerr << "Exception in SERVER start_accept: " << e.what() << "\n";
+			log_file_ << "Exception in SERVER start_accept: " << e.what() << "\n";
 		}
 	}
 
@@ -57,28 +85,30 @@ private:
 	{
 		try
 		{
-			auto buffer = std::make_shared<std::array<char, 1024>>(); // буффер в 1024*8 бита, т.е. 1024 символа
+			auto buffer = std::make_shared<std::array<char, 1024>>(); // 1024*8 бита
 
 			socket->async_read_some(boost::asio::buffer(*buffer),
-				[this, socket, buffer](boost::system::error_code ec, std::size_t length) // Указываем на текущий объект для того, чтобы был доступ к классу и его объектам Server
+				[this, socket, buffer](boost::system::error_code ec, std::size_t length)
 				{
 					if (!ec)
 					{
-						std::cout << "Received: " << std::string(buffer->data(), length) << "\n";
+						log_file_ << "Received: " << std::string(buffer->data(), length) << "\n";
+
 						send_message(socket, std::string(buffer->data(), length));
-						this->start_read(socket); // Зацикливаем прослушивание, т.е. ждем следующее сообщение
+						this->start_read(socket); 
 
 					}
 					else
 					{
-						std::cout << "Client disconnect\n";
-						socket->close(); // Закрываем сокет, если клиент отключился
+						log_file_ << "Client disconnect\n";
+
+						socket->close();
 					}
 				});
 		}
 		catch (const std::exception& e)
 		{
-			std::cerr << "Exception in SERVER start_read: " << e.what() << "\n";
+			log_file_ << "Exception in SERVER start_read: " << e.what() << "\n";
 		}
 	}
 
@@ -91,21 +121,21 @@ private:
 			boost::asio::async_write(
 				*socket,
 				boost::asio::buffer(*buffer),
-				[socket, buffer](boost::system::error_code ec, std::size_t)
+				[this, socket, buffer](boost::system::error_code ec, std::size_t)
 				{
 					if (!ec)
 					{
-						std::cout << "Message sent to client: " << *buffer << "\n";
+						log_file_ << "Message sent to client: " << *buffer << "\n";
 					}
 					else
 					{
-						std::cerr << "Failed to send message: " << ec.message() << "\n";
+						log_file_ << "Failed to send message: " << ec.message() << "\n";
 					}
 				});
 		}
 		catch (const std::exception& e)
 		{
-			std::cerr << "Exception in SERVER send_message: " << e.what() << "\n";
+			log_file_ << "Exception in SERVER send_message: " << e.what() << "\n";
 		}
 	}
 };
@@ -116,11 +146,24 @@ int main()
 	{
 		setlocale(0, "");
 		boost::asio::io_context io_context;
-		Server server(io_context, 8080);
+		short port = 8080;
+		Server server(io_context, port);
 		io_context.run();
 	}
 	catch (const std::exception& e)
 	{
-		std::cerr << "Exception in MAIN: " << e.what() << "\n";
+		std::ofstream log_file_("server_output.txt", std::ios::app);
+		log_file_.setf(std::ios::unitbuf);
+		if (log_file_.is_open())
+		{
+			log_file_ << "Exception in MAIN: " << e.what() << "\n";
+			log_file_.close();
+		}
+		else
+		{
+			throw std::runtime_error("Failed to open log file IN MAIN.");
+		}
+
+		log_file_.close();
 	}
 }
