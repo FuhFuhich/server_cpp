@@ -20,19 +20,19 @@ using tcp = asio::ip::tcp;
 
 std::atomic<bool> server_status(false);
 std::unique_ptr<process::child> server_process = nullptr;
-std::string project_path = (filesystem::current_path().parent_path() / "server" / "x64" / "Debug").string();
+filesystem::path project_path = filesystem::current_path();
 std::string output_file_path = (filesystem::current_path().parent_path() / "server" / "server_output.txt").string();
 
 // Рекурсивный поиск файла по названию файла
-void find_file(filesystem::path& directory, const std::string& filename)
+void find_file(filesystem::path& project_path, const std::string& filename)
 {
 	try
 	{
-		for (const auto& entry : filesystem::recursive_directory_iterator(directory))
+		for (const auto& entry : filesystem::recursive_directory_iterator(project_path))
 		{
 			if (entry.is_regular_file() && entry.path().filename() == filename)
 			{
-				directory = entry.path();
+				project_path = entry.path();
 			}
 		}
 	}
@@ -49,12 +49,15 @@ void start_server()
 		try 
 		{
 			server_process = std::make_unique<process::child>(
-				process::search_path("server"),
+				project_path,
+				//"C:\\Users\\ilyeg\\OneDrive\\Desktop\\VUZ\\6_semak\\server\\server\\x64\\Debug\\server.exe",
+				// process::search_path("server"),
 				process::std_out > output_file_path,
 				process::std_err > output_file_path,
 				process::start_dir = project_path
 			);
 
+			server_status = true;
 			std::cout << "Server is started\n";
 		}
 		catch (const std::exception& e) 
@@ -189,8 +192,10 @@ void server_thread(asio::io_context& ioc, unsigned short port)
 int main()
 {
 	setlocale(0, "");
-	std::cout << "logFile path: " << output_file_path << "\n";
-	std::cout << "Current Directory: " << project_path << "\n";
+	filesystem::path project_path = filesystem::current_path();
+	find_file(project_path, "server.exe");
+	std::cout << "logFile_path: " << output_file_path << "\n";
+	std::cout << "Project_path: " << project_path << "\n";
 	const unsigned short port = 5400;
 
 	filesystem::path directory = filesystem::current_path().parent_path();
