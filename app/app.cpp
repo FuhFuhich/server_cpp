@@ -9,6 +9,7 @@
 #include <atomic>
 #include <iostream>
 #include <string>
+#include <regex>
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -20,7 +21,8 @@ using tcp = asio::ip::tcp;
 
 std::atomic<bool> server_status(false);
 std::unique_ptr<process::child> server_process = nullptr;
-filesystem::path project_path = filesystem::current_path();
+filesystem::path project_path = filesystem::current_path().parent_path();
+filesystem::path log_path = filesystem::current_path().parent_path();
 std::string output_file_path = (filesystem::current_path().parent_path() / "server" / "server_output.txt").string();
 
 // Рекурсивный поиск файла по названию файла
@@ -50,11 +52,9 @@ void start_server()
 		{
 			server_process = std::make_unique<process::child>(
 				project_path,
-				//"C:\\Users\\ilyeg\\OneDrive\\Desktop\\VUZ\\6_semak\\server\\server\\x64\\Debug\\server.exe",
-				// process::search_path("server"),
 				process::std_out > output_file_path,
 				process::std_err > output_file_path,
-				process::start_dir = project_path
+				process::start_dir = log_path
 			);
 
 			server_status = true;
@@ -192,18 +192,10 @@ void server_thread(asio::io_context& ioc, unsigned short port)
 int main()
 {
 	setlocale(0, "");
-	filesystem::path project_path = filesystem::current_path();
 	find_file(project_path, "server.exe");
-	std::cout << "logFile_path: " << output_file_path << "\n";
-	std::cout << "Project_path: " << project_path << "\n";
 	const unsigned short port = 5400;
-
-	filesystem::path directory = filesystem::current_path().parent_path();
-	std::string filename = "server.exe";
-
-	std::ofstream(output_file_path).close();
-
 	asio::io_context ioc;
+
 	std::thread server([&]() {
 		server_thread(ioc, port);
 		});
