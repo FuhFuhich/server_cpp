@@ -23,7 +23,7 @@ std::atomic<bool> server_status(false);
 std::unique_ptr<process::child> server_process = nullptr;
 filesystem::path project_path = filesystem::current_path().parent_path();
 filesystem::path log_path = filesystem::current_path().parent_path();
-std::string output_file_path = (filesystem::current_path().parent_path() / "server" / "server_output.txt").string();
+filesystem::path output_file_path = (filesystem::current_path().parent_path() / "server" / "server_output.txt");
 
 // Рекурсивный поиск файла по названию файла
 void find_file(filesystem::path& project_path, const std::string& filename)
@@ -125,7 +125,7 @@ void pull_and_restart()
 
 std::string read_logs()
 {
-	std::ifstream log_file(output_file_path);
+	std::ifstream log_file(output_file_path.string());
 	std::ostringstream buffer;
 	if (log_file.is_open())
 	{
