@@ -146,7 +146,7 @@ int main()
 	{
 		setlocale(0, "");
 		boost::asio::io_context io_context;
-		short port = 8080;
+		short port = 5400;
 		Server server(io_context, port);
 		io_context.run();
 	}

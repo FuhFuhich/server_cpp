@@ -98,7 +98,6 @@ bool has_changes()
 		process::system("git rev-parse HEAD", process::std_out > local_output);
 		process::system("git rev-parse FETCH_HEAD", process::std_out > remote_output);
 
-		// Чтение вывода из потоков
 		local_head << local_output.rdbuf();
 		remote_head << remote_output.rdbuf();
 
@@ -133,6 +132,48 @@ std::string read_logs()
 	}
 	return buffer.str();
 }
+
+/*
+void handle_request(http::request<http::string_body>& req, http::response<http::string_body>& res)
+{
+	if (req.method() == http::verb::options) {  // Обработка preflight-запросов
+		res.result(http::status::ok);
+		res.set(http::field::access_control_allow_origin, "*");
+		res.set(http::field::access_control_allow_methods, "GET, POST, OPTIONS");
+		res.set(http::field::access_control_allow_headers, "Content-Type");
+		return;
+	}
+
+	if (req.target() == "/turn_on") {
+		pull_and_restart();
+		start_server();
+		res.result(http::status::ok);
+		res.body() = "Server turned on.";
+	}
+	else if (req.target() == "/turn_off") {
+		stop_server();
+		res.result(http::status::ok);
+		res.body() = "Server turned off.";
+	}
+	else if (req.target() == "/get_logs") {
+		res.result(http::status::ok);
+		res.body() = read_logs();
+	}
+	else if (req.target() == "/get_status") {
+		res.result(http::status::ok);
+		res.body() = server_status ? "Active" : "Inactive";
+	}
+	else {
+		res.result(http::status::not_found);
+		res.body() = "Not Found";
+	}
+
+	res.set(http::field::access_control_allow_origin, "*");
+	res.set(http::field::access_control_allow_methods, "GET, POST, OPTIONS");
+	res.set(http::field::access_control_allow_headers, "Content-Type");
+	res.prepare_payload();
+}
+*/
 
 void handle_request(http::request<http::string_body>& req, http::response<http::string_body>& res)
 {

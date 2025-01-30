@@ -37,7 +37,7 @@
         }
 
         function turnOn() {
-            fetch('http://localhost:5400/turn_on')
+            fetch('/turn_on')
                 .then(response => response.text())
                 .then(data => {
                     updateStatus(data);
@@ -46,7 +46,7 @@
         }
 
         function turnOff() {
-            fetch('http://localhost:5400/turn_off')
+            fetch('/turn_off')
                 .then(response => response.text())
                 .then(data => {
                     updateStatus(data);
@@ -55,7 +55,7 @@
         }
 
         function updateLogs() {
-            fetch('http://localhost:5400/get_logs')
+            fetch('/get_logs')
                 .then(response => response.text())
                 .then(data => {
                     const logsElement = document.getElementById('logs');
@@ -65,17 +65,15 @@
 
 
         function getStatus() {
-            fetch('http://localhost:5400/get_status')
+            fetch('/get_status')
                 .then(response => response.text())
                 .then(data => updateStatus(data));
         }
 
-        // Update logs every 2 seconds
-        setInterval(updateLogs, 500);
+        setInterval(updateLogs, 2000);
 
         updateLogs();
 
-        // Проверяем статус при загрузке страницы
         getStatus();
     </script>
 </body>
