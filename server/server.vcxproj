@@ -136,6 +136,9 @@
     <ClInclude Include="Lobby.h" />
     <ClInclude Include="SqlCommander.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="config.env" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

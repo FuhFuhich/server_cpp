@@ -1,4 +1,5 @@
 #include "Lobby.h";
+#include "SqlCommander.h"
 
 Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
 	: acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
@@ -25,8 +26,11 @@ Lobby::~Lobby()
 {
 	if (log_file_.is_open())
 	{
+		log_file_ << "Closing log_file";
 		log_file_.close();
 	}
+
+	acceptor_.close();
 }
 
 void Lobby::start_accept()

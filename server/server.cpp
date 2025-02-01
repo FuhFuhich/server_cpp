@@ -1,5 +1,4 @@
 ﻿#include "Lobby.h"
-#include "SqlCommander.h";
 
 int main()
 {
@@ -24,7 +23,5 @@ int main()
 		{
 			throw std::runtime_error("Failed to open log file IN MAIN.");
 		}
-
-		log_file_.close();
 	}
 }
