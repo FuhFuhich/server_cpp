@@ -126,6 +126,7 @@ std::string read_logs()
 {
 	std::ifstream log_file(output_file_path.string());
 	std::ostringstream buffer;
+	buffer.rdbuf();
 	if (log_file.is_open())
 	{
 		buffer << log_file.rdbuf();

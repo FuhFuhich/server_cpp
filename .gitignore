@@ -3,3 +3,4 @@
 ./app/app
 ./server/server
 ./server/server_output.txt
+*.env
