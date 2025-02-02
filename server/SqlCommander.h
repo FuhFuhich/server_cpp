@@ -1,6 +1,9 @@
 #pragma once
 
+#include "Logger.h"
+
 #include <libpq-fe.h>
+
 #include <string>
 #include <map>
 #include <fstream>
@@ -14,7 +17,7 @@ private:
     std::string user;
     std::string password;
     PGconn* conn;
-    std::ofstream log_file_;
+    Logger log_file_;
 
 public:
     SqlCommander();

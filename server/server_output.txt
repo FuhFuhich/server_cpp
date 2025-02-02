@@ -24,3 +24,13 @@ Message sent to client: wergerwgergerg
 Received: gewrgerwgergrge
 Message sent to client: gewrgerwgergrge
 Client is connected
+Client is connected
+Client is connected
+Client is connected
+Received: hiuohiuhiou
+Message sent to client: hiuohiuhiou
+Received: fjoiewf fewewf wjerwoivwejv ewvewvw
+Message sent to client: fjoiewf fewewf wjerwoivwejv ewvewvw
+Received: vwiuhevqiu 1 fjoeiwf fewjiofwj fweifjewo fewijfjewoif jewiofjewoif jewoifewjoi
+Message sent to client: vwiuhevqiu 1 fjoeiwf fewjiofwj fweifjewo fewijfjewoif jewiofjewoif jewoifewjoi
+Client disconnect

@@ -2,42 +2,38 @@
 #include "SqlCommander.h"
 
 Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
-	: acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
+	: acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
+	log_file_("server_output.txt")
 {
 	try
 	{
-		log_file_.open("server_output.txt", std::ios::app);
-		log_file_.setf(std::ios::unitbuf); // Убираем буфферизацию при записи в файл
-
-		if (!log_file_.is_open())
-		{
-			throw std::runtime_error("Failed to open log file.");
-		}
-
+		log_file_.log("Server started on port: " + std::to_string(port));
 		start_accept();
 	}
 	catch (const std::exception& e)
 	{
-		log_file_ << "Exception in Lobby constructor: " << e.what() << "\n";
+		log_file_.log("Exception in Lobby constructor: " + std::string(e.what()));
 	}
 }
 
 Lobby::~Lobby()
 {
-	if (log_file_.is_open())
+	if (acceptor_.is_open())
 	{
-		log_file_ << "Closing log_file";
-		log_file_.close();
+		acceptor_.close();
 	}
+}
 
-	acceptor_.close();
+void Lobby::string_splitting(const std::string& request)
+{
+	boost::split(requests, request, boost::is_any_of(" "), boost::token_compress_on);
 }
 
 void Lobby::start_accept()
 {
 	try
 	{
-		log_file_ << "Client is connected\n";
+		log_file_.log("Client is connected");
 
 		auto socket = std::make_shared<tcp::socket>(acceptor_.get_executor());
 
@@ -46,12 +42,12 @@ void Lobby::start_accept()
 			{
 				if (!ec)
 				{
-					log_file_ << "Client is connected\n";
+					log_file_.log("Client is connected");
 					start_read(socket);
 				}
 				else
 				{
-					log_file_ << "Error accepting client: " << ec.message() << "\n";
+					log_file_.log("Error accepting client: " + std::string(ec.message()));
 				}
 
 				start_accept();
@@ -59,7 +55,7 @@ void Lobby::start_accept()
 	}
 	catch (const std::exception& e)
 	{
-		log_file_ << "Exception in Lobby start_accept: " << e.what() << "\n";
+		log_file_.log("Exception in Lobby start_accept: " + std::string(e.what()));
 	}
 }
 
@@ -74,7 +70,12 @@ void Lobby::start_read(std::shared_ptr<tcp::socket> socket)
 			{
 				if (!ec)
 				{
-					log_file_ << "Received: " << std::string(buffer->data(), length) << "\n";
+					request = std::string(buffer->data(), length);
+					log_file_.log("Received: " + std::string(request));
+
+					string_splitting(request);
+					// Логика для запроса к бд
+					requests.clear();
 
 					send_message(socket, std::string(buffer->data(), length));
 					this->start_read(socket);
@@ -82,15 +83,18 @@ void Lobby::start_read(std::shared_ptr<tcp::socket> socket)
 				}
 				else
 				{
-					log_file_ << "Client disconnect\n";
+					log_file_.log("Client disconnect");
 
-					socket->close();
+					if (socket->is_open()) 
+					{
+						socket->close();
+					}
 				}
 			});
 	}
 	catch (const std::exception& e)
 	{
-		log_file_ << "Exception in Lobby start_read: " << e.what() << "\n";
+		log_file_.log("Exception in Lobby start_read: " + std::string(e.what()));
 	}
 }
 
@@ -107,16 +111,16 @@ void Lobby::send_message(std::shared_ptr<tcp::socket> socket, const std::string&
 			{
 				if (!ec)
 				{
-					log_file_ << "Message sent to client: " << *buffer << "\n";
+					log_file_.log("Message sent to client: " + std::string(*buffer));
 				}
 				else
 				{
-					log_file_ << "Failed to send message: " << ec.message() << "\n";
+					log_file_.log("Failed to send message: " + std::string(ec.message()));
 				}
 			});
 	}
 	catch (const std::exception& e)
 	{
-		log_file_ << "Exception in Lobby send_message: " << e.what() << "\n";
+		log_file_.log("Exception in Lobby send_message: " + std::string(e.what()));
 	}
 }

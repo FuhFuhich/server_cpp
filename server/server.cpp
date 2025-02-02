@@ -1,4 +1,5 @@
 ﻿#include "Lobby.h"
+#include "logger.h"
 
 int main()
 {
@@ -12,16 +13,9 @@ int main()
 	}
 	catch (const std::exception& e)
 	{
-		std::ofstream log_file_("server_output.txt", std::ios::app);
-		log_file_.setf(std::ios::unitbuf);
-		if (log_file_.is_open())
-		{
-			log_file_ << "Exception in MAIN: " << e.what() << "\n";
-			log_file_.close();
-		}
-		else
-		{
-			throw std::runtime_error("Failed to open log file IN MAIN.");
-		}
+		std::string filename = "server_output.txt";
+		Logger log_file_(filename);
+
+		log_file_.log("Exception in MAIN: " + std::string(e.what()) + "\n");
 	}
 }

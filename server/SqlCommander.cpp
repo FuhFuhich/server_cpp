@@ -1,6 +1,7 @@
 #include "SqlCommander.h"
 
 SqlCommander::SqlCommander() 
+    : log_file_("server_output.txt")
 {
     try
     {
@@ -16,22 +17,14 @@ SqlCommander::SqlCommander()
 
         conn = PQconnectdb(conn_str.c_str());
 
-        log_file_.open("server_output.txt", std::ios::app);
-        log_file_.setf(std::ios::unitbuf);
-
-        if (!log_file_.is_open())
-        {
-            throw std::runtime_error("Failed to open log file.");
-        }
-
         if (PQstatus(conn) != CONNECTION_OK)
         {
-            log_file_ << "SqlCommander. != CONNECTION_OK";
+            log_file_.log("SqlCommander. != CONNECTION_OK");
         }
     }
     catch (const std::exception& e)
     {
-        log_file_ << "Exception in SqlCommander SqlCommander(): " << e.what();
+        log_file_.log("Exception in SqlCommander SqlCommander(): " + std::string(e.what()));
     }
 }
 
@@ -39,41 +32,38 @@ SqlCommander::~SqlCommander()
 {
     if (conn) 
     {
-        log_file_ << "Closing connection with DB";
+        log_file_.log("Closing connection with DB");
         PQfinish(conn);
-    }
-
-    if (log_file_.is_open())
-    {
-        log_file_ << "Closing log_file";
-        log_file_.close();
     }
 }
 
 std::map<std::string, std::string> SqlCommander::load_env(const std::string& filename)
 {
-    try
-    {
-        std::map<std::string, std::string> env;
-        std::ifstream file(filename);
-        std::string line;
+    std::map<std::string, std::string> env;
+    std::ifstream file(filename);
+    std::string line;
 
-        while (std::getline(file, line))
+    if (!file.is_open())
+    {
+        log_file_.log("Failed to open config.env IN SqlCommander: " + filename);
+        throw std::runtime_error("Failed to open config.env IN SqlCommander: " + filename);
+    }
+
+    while (std::getline(file, line))
+    {
+        size_t eq_pos = line.find('=');
+        if (eq_pos != std::string::npos)
         {
-            size_t eq_pos = line.find('=');
-            if (eq_pos != std::string::npos)
+            std::string key = line.substr(0, eq_pos);
+            std::string value = line.substr(eq_pos + 1);
+
+            if (!key.empty() && !value.empty())
             {
-                std::string key = line.substr(0, eq_pos);
-                std::string value = line.substr(eq_pos + 1);
                 env[key] = value;
             }
         }
-        return env;
     }
-    catch (const std::exception& e)
-    {
-        log_file_ << "Exception in SqlCommander load_env: " << e.what();
-    }
+    return env;
 }
 
 void SqlCommander::ExecuteSqlCommand()
@@ -84,6 +74,6 @@ void SqlCommander::ExecuteSqlCommand()
     }
     catch (const std::exception& e)
     {
-        log_file_ << "Exception in SqlCommander ExecuteSqlCommand: " << e.what();
+        log_file_.log("Exception in SqlCommander ExecuteSqlCommand: " + std::string(e.what()));
     }
 }
