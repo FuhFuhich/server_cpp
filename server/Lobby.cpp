@@ -70,6 +70,8 @@ void Lobby::start_read(std::shared_ptr<tcp::socket> socket)
 			{
 				if (!ec)
 				{
+					// Формат отправки сообщения:
+					// <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
 					request = std::string(buffer->data(), length);
 					log_file_.log("Received: " + std::string(request));
 

@@ -6,6 +6,7 @@
 #include <boost/process.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <iostream>
 #include <chrono>
 #include <vector>
 

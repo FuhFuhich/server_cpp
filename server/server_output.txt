@@ -34,3 +34,25 @@ Message sent to client: fjoiewf fewewf wjerwoivwejv ewvewvw
 Received: vwiuhevqiu 1 fjoeiwf fewjiofwj fweifjewo fewijfjewoif jewiofjewoif jewoifewjoi
 Message sent to client: vwiuhevqiu 1 fjoeiwf fewjiofwj fweifjewo fewijfjewoif jewiofjewoif jewoifewjoi
 Client disconnect
+Server started on port: 5400
+Client is connected
+Client is connected
+Client is connected
+Received: huihoihoih
+Message sent to client: huihoihoih
+Received: hiuohoiuhiu
+Message sent to client: hiuohoiuhiu
+Received: hiohiohiouh
+Message sent to client: hiohiohiouh
+Received: hiuohkjhooihoi
+Message sent to client: hiuohkjhooihoi
+Received: jiojpojpoijpoi
+Message sent to client: jiojpojpoijpoi
+Received: joijpoijipjjpoij
+Message sent to client: joijpoijipjjpoij
+Received: joijpoijiojpjipo
+Message sent to client: joijpoijiojpjipo
+Received: joijpoijoipjlkjpioj;l
+Message sent to client: joijpoijoipjlkjpioj;l
+Received: joipjljoipjio
+Message sent to client: joipjljoipjio

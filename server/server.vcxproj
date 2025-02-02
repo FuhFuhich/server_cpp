@@ -129,11 +129,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Lobby.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="server.cpp" />
     <ClCompile Include="SqlCommander.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lobby.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="SqlCommander.h" />
   </ItemGroup>
   <ItemGroup>
