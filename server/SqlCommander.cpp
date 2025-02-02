@@ -66,7 +66,7 @@ std::map<std::string, std::string> SqlCommander::load_env(const std::string& fil
     return env;
 }
 
-void SqlCommander::ExecuteSqlCommand()
+void SqlCommander::execute_sql_command()
 {
     try
     {
@@ -75,5 +75,17 @@ void SqlCommander::ExecuteSqlCommand()
     catch (const std::exception& e)
     {
         log_file_.log("Exception in SqlCommander ExecuteSqlCommand: " + std::string(e.what()));
+    }
+}
+
+void SqlCommander::create_table()
+{
+    try
+    {
+
+    }
+    catch (const std::exception& e)
+    {
+        log_file_.log("Exception in create_tablr IN SqlCommander: " + std::string(e.what()));
     }
 }

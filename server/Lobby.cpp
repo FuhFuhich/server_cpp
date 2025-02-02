@@ -1,5 +1,4 @@
 #include "Lobby.h";
-#include "SqlCommander.h"
 
 Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
 	: acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
@@ -81,7 +80,6 @@ void Lobby::start_read(std::shared_ptr<tcp::socket> socket)
 
 					send_message(socket, std::string(buffer->data(), length));
 					this->start_read(socket);
-
 				}
 				else
 				{

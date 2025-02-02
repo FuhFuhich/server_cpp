@@ -19,6 +19,8 @@ public:
 
 private:
 	tcp::acceptor acceptor_;
+
+protected:
 	std::vector<std::string> requests;
 	std::string request;
 

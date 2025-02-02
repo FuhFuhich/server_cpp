@@ -56,3 +56,5 @@ Received: joijpoijoipjlkjpioj;l
 Message sent to client: joijpoijoipjlkjpioj;l
 Received: joipjljoipjio
 Message sent to client: joipjljoipjio
+Server started on port: 5400
+Client is connected
