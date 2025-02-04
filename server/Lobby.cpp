@@ -14,7 +14,7 @@ Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
 		ssl_context_.use_certificate_chain_file("certs/server.crt");
 		ssl_context_.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
 
-		log_file_.log("SSL server started on port: {}", std::to_string(port));
+		log_file_.log("SSL server started on port: {}", port);
 		start_accept();
 	}
 	catch (const std::exception& e)

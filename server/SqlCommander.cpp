@@ -91,7 +91,7 @@ void SqlCommander::create_table()
 
         if (PQresultStatus(res) != PGRES_COMMAND_OK) 
         {
-            log_file_.log("Table creation failed: {}", std::string(PQerrorMessage(conn)));
+            log_file_.log("Table creation failed: {}", PQerrorMessage(conn));
         }
         else 
         {
