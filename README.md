@@ -7,7 +7,7 @@ $ cd cert
 ```console
 $ openssl req -new -x509 -days 365 -nodes -out server.crt -keyout server.key
 ```
-Вводим данные -> проверяем 
+Вводим данные -> проверяем.
 Проверка закрытого ключа. Если все хорошо, выведет RSA key ok
 ```console
 $ openssl rsa -in server.key -check
