@@ -4,3 +4,5 @@
 ./server/server
 ./server/server_output.txt
 *.env
+*.crt
+*.key

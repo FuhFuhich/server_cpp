@@ -5,6 +5,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/process.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/asio/ssl.hpp>
 
 #include <iostream>
 #include <chrono>
@@ -19,10 +20,9 @@ public:
 
 private:
 	tcp::acceptor acceptor_;
-
-protected:
 	std::vector<std::string> requests;
 	std::string request;
+	boost::asio::ssl::context ssl_context_;
 
 public:
 	Lobby() = delete;
@@ -31,7 +31,8 @@ public:
 
 private:
 	void start_accept();
-	void start_read(std::shared_ptr<tcp::socket> socket);
-	void send_message(std::shared_ptr<tcp::socket> socket, const std::string& message);
+	void start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket);
+	void send_message(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const std::string& message);
 	void string_splitting(const std::string& request);
+	void handle_handshake(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const boost::system::error_code& error);
 };

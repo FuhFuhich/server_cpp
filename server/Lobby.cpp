@@ -2,11 +2,19 @@
 
 Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
 	: acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
+	ssl_context_(boost::asio::ssl::context::sslv23),
 	log_file_("server_output.txt")
 {
 	try
 	{
-		log_file_.log("Server started on port: " + std::to_string(port));
+		ssl_context_.set_options(boost::asio::ssl::context::default_workarounds |
+			boost::asio::ssl::context::no_sslv2 |
+			boost::asio::ssl::context::single_dh_use);
+
+		ssl_context_.use_certificate_chain_file("certs/server.crt");
+		ssl_context_.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
+
+		log_file_.log("SSL server started on port: " + std::to_string(port));
 		start_accept();
 	}
 	catch (const std::exception& e)
@@ -34,15 +42,20 @@ void Lobby::start_accept()
 	{
 		log_file_.log("Client is connected");
 
-		auto socket = std::make_shared<tcp::socket>(acceptor_.get_executor());
+		auto ssl_socket = std::make_shared<boost::asio::ssl::stream<tcp::socket>>(acceptor_.get_executor(), ssl_context_);
 
-		acceptor_.async_accept(*socket,
-			[this, socket](boost::system::error_code ec)
+		acceptor_.async_accept(ssl_socket->lowest_layer(),
+			[this, ssl_socket](boost::system::error_code ec)
 			{
 				if (!ec)
 				{
 					log_file_.log("Client is connected");
-					start_read(socket);
+
+					ssl_socket->async_handshake(boost::asio::ssl::stream_base::server,
+						[this, ssl_socket](boost::system::error_code ec)
+						{
+							handle_handshake(ssl_socket, ec);
+						});
 				}
 				else
 				{
@@ -58,14 +71,27 @@ void Lobby::start_accept()
 	}
 }
 
-void Lobby::start_read(std::shared_ptr<tcp::socket> socket)
+void Lobby::handle_handshake(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const boost::system::error_code& ec)
+{
+	if (!ec)
+	{
+		log_file_.log("SSL handshake successful");
+		start_read(ssl_socket);
+	}
+	else
+	{
+		log_file_.log("SSL handshake failed : " + ec.message());
+	}
+}
+
+void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket)
 {
 	try
 	{
 		auto buffer = std::make_shared<std::array<char, 1024>>(); // 1024*8 бита
 
-		socket->async_read_some(boost::asio::buffer(*buffer),
-			[this, socket, buffer](boost::system::error_code ec, std::size_t length)
+		ssl_socket->async_read_some(boost::asio::buffer(*buffer),
+			[this, ssl_socket, buffer](boost::system::error_code ec, std::size_t length)
 			{
 				if (!ec)
 				{
@@ -78,17 +104,13 @@ void Lobby::start_read(std::shared_ptr<tcp::socket> socket)
 					// Логика для запроса к бд
 					requests.clear();
 
-					send_message(socket, std::string(buffer->data(), length));
-					this->start_read(socket);
+					send_message(ssl_socket, std::string(buffer->data(), length));
+					this->start_read(ssl_socket);
 				}
 				else
 				{
-					log_file_.log("Client disconnect");
-
-					if (socket->is_open()) 
-					{
-						socket->close();
-					}
+					log_file_.log("Client disconnect: " + ec.message());
+					ssl_socket->lowest_layer().close();
 				}
 			});
 	}
@@ -98,16 +120,16 @@ void Lobby::start_read(std::shared_ptr<tcp::socket> socket)
 	}
 }
 
-void Lobby::send_message(std::shared_ptr<tcp::socket> socket, const std::string& message)
+void Lobby::send_message(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const std::string& message)
 {
 	try
 	{
 		auto buffer = std::make_shared<std::string>(message);
 
 		boost::asio::async_write(
-			*socket,
+			*ssl_socket,
 			boost::asio::buffer(*buffer),
-			[this, socket, buffer](boost::system::error_code ec, std::size_t)
+			[this, ssl_socket, buffer](boost::system::error_code ec, std::size_t)
 			{
 				if (!ec)
 				{
