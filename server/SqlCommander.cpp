@@ -24,7 +24,7 @@ SqlCommander::SqlCommander()
     }
     catch (const std::exception& e)
     {
-        log_file_.log("Exception in SqlCommander SqlCommander(): " + std::string(e.what()));
+        log_file_.log("Exception in SqlCommander SqlCommander(): {}", std::string(e.what()));
     }
 }
 
@@ -45,8 +45,8 @@ std::map<std::string, std::string> SqlCommander::load_env(const std::string& fil
 
     if (!file.is_open())
     {
-        log_file_.log("Failed to open config.env IN SqlCommander: " + filename);
-        throw std::runtime_error("Failed to open config.env IN SqlCommander: " + filename);
+        log_file_.log("Failed to open config.env IN SqlCommander: {}", filename);
+        throw std::runtime_error("SERVER Failed to open config.env IN SqlCommander: " + filename);
     }
 
     while (std::getline(file, line))
@@ -74,7 +74,7 @@ void SqlCommander::execute_sql_command()
     }
     catch (const std::exception& e)
     {
-        log_file_.log("Exception in SqlCommander ExecuteSqlCommand: " + std::string(e.what()));
+        log_file_.log("Exception in SqlCommander ExecuteSqlCommand: {}", e.what());
     }
 }
 
@@ -86,6 +86,6 @@ void SqlCommander::create_table()
     }
     catch (const std::exception& e)
     {
-        log_file_.log("Exception in create_tablr IN SqlCommander: " + std::string(e.what()));
+        log_file_.log("Exception in create_tablr IN SqlCommander: {}", e.what());
     }
 }

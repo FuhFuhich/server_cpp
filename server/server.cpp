@@ -16,6 +16,6 @@ int main()
 		std::string filename = "server_output.txt";
 		Logger log_file_(filename);
 
-		log_file_.log("Exception in MAIN: " + std::string(e.what()));
+		log_file_.log("Exception in MAIN: {}", e.what());
 	}
 }

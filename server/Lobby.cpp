@@ -14,12 +14,12 @@ Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
 		ssl_context_.use_certificate_chain_file("certs/server.crt");
 		ssl_context_.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
 
-		log_file_.log("SSL server started on port: " + std::to_string(port));
+		log_file_.log("SSL server started on port: {}", port);
 		start_accept();
 	}
 	catch (const std::exception& e)
 	{
-		log_file_.log("Exception in Lobby constructor: " + std::string(e.what()));
+		log_file_.log("Exception in Lobby constructor: {}", e.what());
 	}
 }
 
@@ -57,7 +57,7 @@ void Lobby::start_accept()
 				}
 				else
 				{
-					log_file_.log("Error accepting client: " + std::string(ec.message()));
+					log_file_.log("Error accepting client: {}", ec.message());
 				}
 
 				start_accept();
@@ -65,7 +65,7 @@ void Lobby::start_accept()
 	}
 	catch (const std::exception& e)
 	{
-		log_file_.log("Exception in Lobby start_accept: " + std::string(e.what()));
+		log_file_.log("Exception in Lobby start_accept: {}", e.what());
 	}
 }
 
@@ -78,7 +78,7 @@ void Lobby::handle_handshake(std::shared_ptr<boost::asio::ssl::stream<tcp::socke
 	}
 	else
 	{
-		log_file_.log("SSL handshake failed : " + ec.message());
+		log_file_.log("SSL handshake failed: {}", ec.message());
 	}
 }
 
@@ -96,7 +96,7 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 					// Формат отправки сообщения:
 					// <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
 					request = std::string(buffer->data(), length);
-					log_file_.log("Received: " + std::string(request));
+					log_file_.log("Received: {}", std::string(request));
 
 					string_splitting(request);
 					// Логика для запроса к бд
@@ -107,14 +107,14 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 				}
 				else
 				{
-					log_file_.log("Client disconnect: " + ec.message());
+					log_file_.log("Client disconnect: {}", ec.message());
 					ssl_socket->lowest_layer().close();
 				}
 			});
 	}
 	catch (const std::exception& e)
 	{
-		log_file_.log("Exception in Lobby start_read: " + std::string(e.what()));
+		log_file_.log("Exception in Lobby start_read: ", e.what());
 	}
 }
 
@@ -131,16 +131,16 @@ void Lobby::send_message(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> 
 			{
 				if (!ec)
 				{
-					log_file_.log("Message sent to client: " + std::string(*buffer));
+					log_file_.log("Message sent to client: {}", *buffer);
 				}
 				else
 				{
-					log_file_.log("Failed to send message: " + std::string(ec.message()));
+					log_file_.log("Failed to send message: {}", ec.message());
 				}
 			});
 	}
 	catch (const std::exception& e)
 	{
-		log_file_.log("Exception in Lobby send_message: " + std::string(e.what()));
+		log_file_.log("Exception in Lobby send_message: {}", e.what());
 	}
 }

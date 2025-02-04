@@ -7,7 +7,7 @@ Logger::Logger(const std::string& filename)
 
 	if (!log_file_.is_open())
 	{
-		throw std::runtime_error("Failed open log file in LOGGER");
+		throw std::runtime_error("SERVER Failed open log file in LOGGER");
 	}
 }
 
@@ -15,13 +15,14 @@ Logger::~Logger()
 {
 	if (log_file_.is_open()) 
 	{
-		log_file_ << "Close log_file\n";
+		log_file_ << "SERVER Close log_file\n";
 		log_file_.close();
 	}
 }
 
-void Logger::log(const std::string& message)
+template <typename... Args>
+void Logger::log(fmt::format_string<Args...> fmt_str, Args&&... args)
 {
 	std::lock_guard<std::mutex> lock(log_mutex_);
-	log_file_ << "SERVER " + message << "\n";
+	log_file_ << "SERVER " << fmt::format(fmt_str, std::forward<Args>(args)...) << "\n";
 }

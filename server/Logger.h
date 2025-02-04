@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <fstream>
+#include <fmt/core.h>
 
 class Logger
 {
@@ -13,5 +14,6 @@ public:
 	Logger() = delete;
 	Logger(const std::string& filename);
 	~Logger();
-	void log(const std::string& message);
+	template <typename... Args>
+	void log(fmt::format_string<Args...> fmt_str, Args&&... args);
 };
