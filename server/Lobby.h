@@ -2,6 +2,7 @@
 
 #include "Logger.h"
 #include "BufferPool.h"
+#include "SqlCommander.h"
 
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
@@ -26,7 +27,7 @@ private:
 	std::string request_;
 	boost::asio::ssl::context ssl_context_;
 	BufferPool buffer_pool_;
-
+	SqlCommander sql_;
 
 public:
 	Lobby() = delete;
@@ -38,5 +39,4 @@ private:
 	void start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket);
 	void send_message(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const std::string& message);
 	void string_splitting(const std::string& request);
-	void handle_handshake(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const boost::system::error_code& error);
 };

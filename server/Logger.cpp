@@ -19,10 +19,3 @@ Logger::~Logger()
 		log_file_.close();
 	}
 }
-
-template <typename... Args>
-void Logger::log(fmt::format_string<Args...> fmt_str, Args&&... args)
-{
-	std::lock_guard<std::mutex> lock(log_mutex_);
-	log_file_ << "SERVER " << fmt::format(fmt_str, std::forward<Args>(args)...) << "\n";
-}

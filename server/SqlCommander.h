@@ -1,14 +1,12 @@
 #pragma once
 
 #include "Logger.h"
-#include "Lobby.h"
 
 #include <libpq-fe.h>
 
+#include <iostream>
 #include <string>
 #include <map>
-#include <fstream>
-#include <format>
 
 class SqlCommander
 {
@@ -23,7 +21,7 @@ private:
 public:
     SqlCommander();
     ~SqlCommander();
-    std::map<std::string, std::string> load_env(const std::string& filename);
-    void execute_sql_command();
+    std::map<std::string, std::string> load_env(std::string&& filename);
+    //void execute_sql_command();
     void create_table();
 };

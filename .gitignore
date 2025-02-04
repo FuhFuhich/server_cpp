@@ -6,3 +6,5 @@
 *.env
 *.crt
 *.key
+./server/server/Debug
+./server/Server

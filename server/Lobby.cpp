@@ -14,7 +14,7 @@ Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
 		ssl_context_.use_certificate_chain_file("certs/server.crt");
 		ssl_context_.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
 
-		log_file_.log("SSL server started on port: {}", port);
+		log_file_.log("SSL server started on port: {}", std::to_string(port));
 		start_accept();
 	}
 	catch (const std::exception& e)
@@ -52,7 +52,15 @@ void Lobby::start_accept()
 					ssl_socket->async_handshake(boost::asio::ssl::stream_base::server,
 						[this, ssl_socket](boost::system::error_code ec)
 						{
-							handle_handshake(ssl_socket, ec);
+							if (!ec)
+							{
+								log_file_.log("SSL handshake successful");
+								start_read(ssl_socket);
+							}
+							else
+							{
+								log_file_.log("SSL handshake failed: {}", ec.message());
+							}
 						});
 				}
 				else
@@ -66,19 +74,6 @@ void Lobby::start_accept()
 	catch (const std::exception& e)
 	{
 		log_file_.log("Exception in Lobby start_accept: {}", e.what());
-	}
-}
-
-void Lobby::handle_handshake(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const boost::system::error_code& ec)
-{
-	if (!ec)
-	{
-		log_file_.log("SSL handshake successful");
-		start_read(ssl_socket);
-	}
-	else
-	{
-		log_file_.log("SSL handshake failed: {}", ec.message());
 	}
 }
 
@@ -96,9 +91,10 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 					// Формат отправки сообщения:
 					// <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
 					request_ = std::string(buffer->data(), length);
-					log_file_.log("Received: {}", std::string(request_));
+					log_file_.log("Received: {}", request_);
 
 					string_splitting(request_);
+					sql_.create_table();
 					// Логика для запроса к бд
 					requests_.clear();
 

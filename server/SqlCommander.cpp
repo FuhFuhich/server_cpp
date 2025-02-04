@@ -12,19 +12,19 @@ SqlCommander::SqlCommander()
         user = env["USER"];
         password = env["PASSWORD"];
 
-        std::string conn_str = std::format("host={} dbname={} user={} password={}",
+        std::string conn_str = fmt::format("host={} dbname={} user={} password={}",
             host, dbname, user, password);
 
         conn = PQconnectdb(conn_str.c_str());
 
         if (PQstatus(conn) != CONNECTION_OK)
         {
-            log_file_.log("SqlCommander. != CONNECTION_OK");
+            log_file_.log("SqlCommander != CONNECTION_OK in SqlCommander()");
         }
     }
     catch (const std::exception& e)
     {
-        log_file_.log("Exception in SqlCommander SqlCommander(): {}", std::string(e.what()));
+        log_file_.log("Exception in SqlCommander SqlCommander(): {}", e.what());
     }
 }
 
@@ -37,7 +37,7 @@ SqlCommander::~SqlCommander()
     }
 }
 
-std::map<std::string, std::string> SqlCommander::load_env(const std::string& filename)
+std::map<std::string, std::string> SqlCommander::load_env(std::string&& filename)
 {
     std::map<std::string, std::string> env;
     std::ifstream file(filename);
@@ -66,6 +66,7 @@ std::map<std::string, std::string> SqlCommander::load_env(const std::string& fil
     return env;
 }
 
+/*
 void SqlCommander::execute_sql_command()
 {
     try
@@ -77,12 +78,27 @@ void SqlCommander::execute_sql_command()
         log_file_.log("Exception in SqlCommander ExecuteSqlCommand: {}", e.what());
     }
 }
+*/
 
 void SqlCommander::create_table()
 {
     try
     {
+        const char* create_table_query = R"(
+            CREATE TABLE user(id_user INTEGER PRIMARY KEY);)";
 
+        PGresult* res = PQexec(conn, create_table_query);
+
+        if (PQresultStatus(res) != PGRES_COMMAND_OK) 
+        {
+            log_file_.log("Table creation failed: {}", std::string(PQerrorMessage(conn)));
+        }
+        else 
+        {
+            log_file_.log("Table created successfully");
+        }
+
+        PQclear(res);
     }
     catch (const std::exception& e)
     {
