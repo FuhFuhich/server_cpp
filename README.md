@@ -1,16 +1,16 @@
 Переходим в дирректорию, где хранятся сертификат и ключ
 ```console
-$ cd server
-$ cd cert
+cd server
+cd cert
 ```
 Создаем с помощью Lets encrypt сертификат и ключ
 ```console
-$ openssl req -new -x509 -days 365 -nodes -out server.crt -keyout server.key
+openssl req -new -x509 -days 365 -nodes -out server.crt -keyout server.key
 ```
 Вводим данные -> проверяем.
 Проверка закрытого ключа. Если все хорошо, выведет RSA key ok
 ```console
-$ openssl rsa -in server.key -check
+openssl rsa -in server.key -check
 ```
 Для проверки сертификата. Эта команда выведет все данные о сертификате
 ```console
