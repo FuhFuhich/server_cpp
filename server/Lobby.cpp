@@ -33,7 +33,7 @@ Lobby::~Lobby()
 
 void Lobby::string_splitting(const std::string& request)
 {
-	boost::split(requests, request, boost::is_any_of(" "), boost::token_compress_on);
+	boost::split(requests_, request, boost::is_any_of(" "), boost::token_compress_on);
 }
 
 void Lobby::start_accept()
@@ -86,7 +86,7 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 {
 	try
 	{
-		auto buffer = std::make_shared<std::array<char, 1024>>(); // 1024*8 бита
+		auto buffer = buffer_pool_.get_buffer();
 
 		ssl_socket->async_read_some(boost::asio::buffer(*buffer),
 			[this, ssl_socket, buffer](boost::system::error_code ec, std::size_t length)
@@ -95,14 +95,17 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 				{
 					// Формат отправки сообщения:
 					// <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
-					request = std::string(buffer->data(), length);
-					log_file_.log("Received: {}", std::string(request));
+					request_ = std::string(buffer->data(), length);
+					log_file_.log("Received: {}", std::string(request_));
 
-					string_splitting(request);
+					string_splitting(request_);
 					// Логика для запроса к бд
-					requests.clear();
+					requests_.clear();
 
 					send_message(ssl_socket, std::string(buffer->data(), length));
+
+					buffer_pool_.release(buffer);
+
 					this->start_read(ssl_socket);
 				}
 				else

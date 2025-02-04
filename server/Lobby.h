@@ -1,5 +1,7 @@
 #pragma once
+
 #include "Logger.h"
+#include "BufferPool.h"
 
 #include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
@@ -20,9 +22,11 @@ public:
 
 private:
 	tcp::acceptor acceptor_;
-	std::vector<std::string> requests;
-	std::string request;
+	std::vector<std::string> requests_;
+	std::string request_;
 	boost::asio::ssl::context ssl_context_;
+	BufferPool buffer_pool_;
+
 
 public:
 	Lobby() = delete;

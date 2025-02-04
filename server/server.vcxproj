@@ -128,12 +128,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BufferPool.cpp" />
     <ClCompile Include="Lobby.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="server.cpp" />
     <ClCompile Include="SqlCommander.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BufferPool.h" />
     <ClInclude Include="Lobby.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="SqlCommander.h" />
