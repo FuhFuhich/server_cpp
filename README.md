@@ -1,7 +1,7 @@
 Переходим в дирректорию, где хранятся сертификат и ключ
 ```console
 cd server
-cd cert
+cd certs
 ```
 Создаем с помощью Lets encrypt сертификат и ключ
 ```console
