@@ -40,16 +40,14 @@ void Lobby::start_accept()
 {
 	try
 	{
-		log_file_.log("Client is connected");
-
 		auto ssl_socket = std::make_shared<boost::asio::ssl::stream<tcp::socket>>(acceptor_.get_executor(), ssl_context_);
 
-		acceptor_.async_accept(ssl_socket->lowest_layer(),
+		acceptor_.async_accept(ssl_socket->next_layer(),
 			[this, ssl_socket](boost::system::error_code ec)
 			{
 				if (!ec)
 				{
-					log_file_.log("Client is connected");
+					log_file_.log("Client connected, start SSL handshake");
 
 					ssl_socket->async_handshake(boost::asio::ssl::stream_base::server,
 						[this, ssl_socket](boost::system::error_code ec)

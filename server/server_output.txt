@@ -58,3 +58,24 @@ Received: joipjljoipjio
 Message sent to client: joipjljoipjio
 Server started on port: 5400
 Client is connected
+SSL server started on port: 5400
+Client is connected
+Client is connected
+Client is connected
+SSL handshake failed : packet length too long (SSL routines)
+SSL server started on port: 5400
+Client connected, start SSL handshake
+SSL handshake failed : packet length too long (SSL routines)
+SSL server started on port: 5400
+SSL server started on port: 5400
+Client connected, start SSL handshake
+SSL handshake successful
+Received: jiojoi
+Message sent to client: jiojoi
+Received: joipoijpojpi
+Message sent to client: joipoijpojpi
+Received: jiojpoijpojpo
+Message sent to client: jiojpoijpojpo
+Received: joijpojpoijoijp
+Message sent to client: joijpojpoijoijp
+Client disconnect: Удаленный хост принудительно разорвал существующее подключение

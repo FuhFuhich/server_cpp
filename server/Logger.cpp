@@ -23,5 +23,5 @@ Logger::~Logger()
 void Logger::log(const std::string& message)
 {
 	std::lock_guard<std::mutex> lock(log_mutex_);
-	log_file_ << message << "\n";
+	log_file_ << "SERVER " + message << "\n";
 }
