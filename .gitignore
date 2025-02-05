@@ -8,3 +8,4 @@
 *.key
 ./server/server/Debug
 ./server/Server
+*server_output.txt
