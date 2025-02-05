@@ -30,7 +30,7 @@ private:
 	SqlCommander sql_;
 
 public:
-	Lobby() = delete;
+	Lobby() = delete; // Запрещаем создавать конструктор по умолчанию явно
 	Lobby(boost::asio::io_context& io_context, const short& port);
 	~Lobby();
 

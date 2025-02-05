@@ -7,6 +7,7 @@
 #include <optional>
 
 constexpr std::size_t BUFFER_SIZE = 1024;
+constexpr int MAX_POOL_SIZE = 100;
 
 using Buffer = std::array<char, BUFFER_SIZE>;
 

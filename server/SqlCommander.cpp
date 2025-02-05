@@ -66,7 +66,6 @@ std::map<std::string, std::string> SqlCommander::load_env(std::string&& filename
     return env;
 }
 
-/*
 void SqlCommander::execute_sql_command()
 {
     try
@@ -78,7 +77,6 @@ void SqlCommander::execute_sql_command()
         log_file_.log("Exception in SqlCommander ExecuteSqlCommand: {}", e.what());
     }
 }
-*/
 
 void SqlCommander::create_table()
 {

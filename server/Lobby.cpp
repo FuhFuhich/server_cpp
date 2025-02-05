@@ -49,6 +49,7 @@ void Lobby::start_accept()
 				{
 					log_file_.log("Client connected, start SSL handshake");
 
+					// трехстороннее рукопожатие
 					ssl_socket->async_handshake(boost::asio::ssl::stream_base::server,
 						[this, ssl_socket](boost::system::error_code ec)
 						{
@@ -98,6 +99,7 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 					// Логика для запроса к бд
 					requests_.clear();
 
+					// Сделать возврат execute_sql_command и отправка сообщения
 					send_message(ssl_socket, std::string(buffer->data(), length));
 
 					buffer_pool_.release(buffer);

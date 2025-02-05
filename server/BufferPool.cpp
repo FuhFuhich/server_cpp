@@ -17,5 +17,10 @@ std::shared_ptr<Buffer> BufferPool::get_buffer()
 void BufferPool::release(std::shared_ptr<Buffer> buffer)
 {
 	std::lock_guard<std::mutex> lock(mutex_);
-	pool_.push_back(buffer);
+	
+	// Ограничиваем кол-во буфферов 100. shared_ptr сам удалит
+	if (pool_.size() < MAX_POOL_SIZE)
+	{
+		pool_.push_back(buffer);
+	}
 }

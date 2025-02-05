@@ -22,6 +22,6 @@ public:
     SqlCommander();
     ~SqlCommander();
     std::map<std::string, std::string> load_env(std::string&& filename);
-    //void execute_sql_command();
+    void execute_sql_command();
     void create_table();
 };

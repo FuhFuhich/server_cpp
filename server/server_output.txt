@@ -83,3 +83,5 @@ SERVER SqlCommander. != CONNECTION_OK
 SERVER SSL server started on port: 5400
 SERVER SqlCommander. != CONNECTION_OK
 SERVER SSL server started on port: 5400
+SERVER SqlCommander != CONNECTION_OK in SqlCommander()
+SERVER SSL server started on port: 5400
