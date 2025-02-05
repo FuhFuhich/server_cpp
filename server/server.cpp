@@ -17,11 +17,13 @@ int main()
 
 		for (int i = 0; i < thread_count; ++i)
 		{
+			// поток передается в threads и каждый поток выполняет io_context.run()
 			threads.emplace_back([&io_context]() {io_context.run(); });
 		}
 
 		for (auto& thread : threads)
 		{
+			// ждем, пока все потоки завершат своб работу
 			thread.join();
 		}
 	}

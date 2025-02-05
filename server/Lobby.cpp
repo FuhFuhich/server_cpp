@@ -7,10 +7,12 @@ Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
 {
 	try
 	{
+		// устанавливаем параметры для ssl_context_
 		ssl_context_.set_options(boost::asio::ssl::context::default_workarounds |
 			boost::asio::ssl::context::no_sslv2 |
 			boost::asio::ssl::context::single_dh_use);
-
+		
+		// загружаем сертификат и ключ в ssl_context_
 		ssl_context_.use_certificate_chain_file("certs/server.crt");
 		ssl_context_.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
 
@@ -42,6 +44,7 @@ void Lobby::start_accept()
 	{
 		auto ssl_socket = std::make_shared<boost::asio::ssl::stream<tcp::socket>>(acceptor_.get_executor(), ssl_context_);
 
+		// Ожидаем подключения
 		acceptor_.async_accept(ssl_socket->next_layer(),
 			[this, ssl_socket](boost::system::error_code ec)
 			{
@@ -49,7 +52,7 @@ void Lobby::start_accept()
 				{
 					log_file_.log("Client connected, start SSL handshake");
 
-					// трехстороннее рукопожатие
+					// Трехстороннее рукопожатие
 					ssl_socket->async_handshake(boost::asio::ssl::stream_base::server,
 						[this, ssl_socket](boost::system::error_code ec)
 						{
@@ -84,6 +87,7 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 	{
 		auto buffer = buffer_pool_.get_buffer();
 
+		// Ждем сообщения
 		ssl_socket->async_read_some(boost::asio::buffer(*buffer),
 			[this, ssl_socket, buffer](boost::system::error_code ec, std::size_t length)
 			{
@@ -108,8 +112,11 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 				}
 				else
 				{
-					log_file_.log("Client disconnect: {}", ec.message());
+					log_file_.log("SOCKET is close");
+					// Закрываем TCP соединение, т.е. сокет
 					ssl_socket->lowest_layer().close();
+
+					log_file_.log("Client disconnect: {}", ec.message());
 				}
 			});
 	}
@@ -125,6 +132,7 @@ void Lobby::send_message(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> 
 	{
 		auto buffer = std::make_shared<std::string>(message);
 
+		// Записываем сообщение
 		boost::asio::async_write(
 			*ssl_socket,
 			boost::asio::buffer(*buffer),
