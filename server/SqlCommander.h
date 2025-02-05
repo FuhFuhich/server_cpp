@@ -7,21 +7,26 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <vector>
 
 class SqlCommander
 {
 private:
-    std::string host;
-    std::string dbname;
-    std::string user;
-    std::string password;
-    PGconn* conn;
+    std::string host_;
+    std::string dbname_;
+    std::string user_;
+    std::string password_;
+    PGconn* conn_;
     Logger log_file_;
 
 public:
     SqlCommander();
     ~SqlCommander();
-    std::map<std::string, std::string> load_env(std::string&& filename);
-    void execute_sql_command();
-    void create_table();
+
+public:
+    std::string execute_sql_command(const std::vector<std::string>& requests_);
+
+private:
+    std::map<std::string, std::string> load_env(const std::string& filename);
+    std::string create_table();
 };

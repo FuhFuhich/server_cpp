@@ -7,17 +7,17 @@ SqlCommander::SqlCommander()
     {
         auto env = load_env("config.env");
 
-        host = env["HOST"];
-        dbname = env["DBNAME"];
-        user = env["USER"];
-        password = env["PASSWORD"];
+        host_ = env["HOST"];
+        dbname_ = env["DBNAME"];
+        user_ = env["USER"];
+        password_ = env["PASSWORD"];
 
         std::string conn_str = fmt::format("host={} dbname={} user={} password={}",
-            host, dbname, user, password);
+            host_, dbname_, user_, password_);
 
-        conn = PQconnectdb(conn_str.c_str());
+        conn_ = PQconnectdb(conn_str.c_str());
 
-        if (PQstatus(conn) != CONNECTION_OK)
+        if (PQstatus(conn_) != CONNECTION_OK)
         {
             log_file_.log("SqlCommander != CONNECTION_OK in SqlCommander()");
         }
@@ -30,14 +30,14 @@ SqlCommander::SqlCommander()
 
 SqlCommander::~SqlCommander() 
 {
-    if (conn) 
+    if (conn_)
     {
         log_file_.log("Closing connection with DB");
-        PQfinish(conn);
+        PQfinish(conn_);
     }
 }
 
-std::map<std::string, std::string> SqlCommander::load_env(std::string&& filename)
+std::map<std::string, std::string> SqlCommander::load_env(const std::string& filename)
 {
     std::map<std::string, std::string> env;
     std::ifstream file(filename);
@@ -66,40 +66,53 @@ std::map<std::string, std::string> SqlCommander::load_env(std::string&& filename
     return env;
 }
 
-void SqlCommander::execute_sql_command()
+std::string SqlCommander::execute_sql_command(const std::vector<std::string>& requests_)
 {
     try
     {
-
+        if (requests_[0] == "create")
+        {
+            return create_table();
+        }
+        else
+        {
+            return "failed";
+        }
     }
     catch (const std::exception& e)
     {
         log_file_.log("Exception in SqlCommander ExecuteSqlCommand: {}", e.what());
+        return "failed";
     }
 }
 
-void SqlCommander::create_table()
+std::string SqlCommander::create_table() 
 {
-    try
+    try 
     {
         const char* create_table_query = R"(
-            CREATE TABLE user(id_user INTEGER PRIMARY KEY);)";
+            CREATE TABLE user (
+                id_user INTEGER PRIMARY KEY
+            );
+        )";
 
-        PGresult* res = PQexec(conn, create_table_query);
+        PGresult* res = PQexec(conn_, create_table_query);
 
         if (PQresultStatus(res) != PGRES_COMMAND_OK) 
         {
-            log_file_.log("Table creation failed: {}", PQerrorMessage(conn));
-        }
-        else 
-        {
-            log_file_.log("Table created successfully");
+            log_file_.log("Table creation failed: {}", PQerrorMessage(conn_));
+            PQclear(res);
+            return "failed";
         }
 
+        log_file_.log("Table created successfully");
         PQclear(res);
+        return "success";
+
     }
-    catch (const std::exception& e)
+    catch (const std::exception& e) 
     {
-        log_file_.log("Exception in create_tablr IN SqlCommander: {}", e.what());
+        log_file_.log("Exception in create_table in SqlCommander: {}", e.what());
+        return "failed";
     }
 }
