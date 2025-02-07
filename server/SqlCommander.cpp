@@ -63,7 +63,7 @@ std::map<std::string, std::string> SqlCommander::load_env(const std::string& fil
             }
         }
     }
-    return env;
+    return env; 
 }
 
 std::string SqlCommander::execute_sql_command(const std::vector<std::string>& requests_)
