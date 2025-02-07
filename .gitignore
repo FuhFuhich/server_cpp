@@ -1,11 +1,9 @@
 **/.vs/
 **/x64/
 ./app/app
-./server/server
+server/server
 ./server/server_output.txt
 *.env
 *.crt
 *.key
-./server/server/Debug
-./server/server/server/*
 *server_output.txt
