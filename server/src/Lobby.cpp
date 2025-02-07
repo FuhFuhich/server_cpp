@@ -99,7 +99,7 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 					log_file_.log("Received: {}", request_);
 
 					string_splitting(request_);
-					sql_.create_table();
+					sql_.execute_sql_command(requests_);
 					// Логика для запроса к бд
 					requests_.clear();
 

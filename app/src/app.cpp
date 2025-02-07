@@ -21,9 +21,9 @@ using tcp = asio::ip::tcp;
 
 std::atomic<bool> server_status(false);
 std::unique_ptr<process::child> server_process = nullptr;
-filesystem::path project_path = filesystem::current_path().parent_path();
-filesystem::path log_path = filesystem::current_path().parent_path();
-filesystem::path output_file_path = (filesystem::current_path().parent_path() / "server" / "server_output.txt");
+filesystem::path project_path = filesystem::current_path().parent_path().parent_path();
+filesystem::path log_path = filesystem::current_path().parent_path().parent_path();
+filesystem::path output_file_path = (filesystem::current_path().parent_path().parent_path() / "server" / "src" / "server_output.txt");
 
 // Рекурсивный поиск файла по названию файла
 void find_file(filesystem::path& project_path, const std::string& filename)
@@ -209,7 +209,7 @@ void handle_request(http::request<http::string_body>& req, http::response<http::
 	res.prepare_payload();
 }
 
-void server_thread(asio::io_context& ioc, unsigned short port)
+void server_thread(asio::io_context& ioc, const unsigned short& port)
 {
 	tcp::acceptor acceptor(ioc, tcp::endpoint(tcp::v4(), port));
 	while (true)

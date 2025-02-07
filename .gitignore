@@ -1,9 +1,9 @@
 **/.vs/
 **/x64/
-./app/app
-server/server
-./server/server_output.txt
+app/src/app
+server/src/server
 *.env
 *.crt
 *.key
 *server_output.txt
+out
