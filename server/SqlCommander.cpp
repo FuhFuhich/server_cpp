@@ -76,13 +76,13 @@ std::string SqlCommander::execute_sql_command(const std::vector<std::string>& re
         }
         else
         {
-            return "failed";
+            return "";
         }
     }
     catch (const std::exception& e)
     {
         log_file_.log("Exception in SqlCommander ExecuteSqlCommand: {}", e.what());
-        return "failed";
+        return "";
     }
 }
 
@@ -102,17 +102,17 @@ std::string SqlCommander::create_table()
         {
             log_file_.log("Table creation failed: {}", PQerrorMessage(conn_));
             PQclear(res);
-            return "failed";
+            return "";
         }
 
         log_file_.log("Table created successfully");
         PQclear(res);
-        return "success";
+        return "nya";
 
     }
     catch (const std::exception& e) 
     {
         log_file_.log("Exception in create_table in SqlCommander: {}", e.what());
-        return "failed";
+        return "";
     }
 }

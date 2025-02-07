@@ -7,5 +7,5 @@
 *.crt
 *.key
 ./server/server/Debug
-./server/Server
+./server/server/server/*
 *server_output.txt
