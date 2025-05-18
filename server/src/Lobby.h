@@ -4,11 +4,10 @@
 #include "BufferPool.h"
 #include "SqlCommander.h"
 
+#include <boost/beast/core.hpp>
+#include <boost/beast/websocket.hpp>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/process.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/asio/ssl.hpp>
 
 #include <iostream>
 #include <chrono>
@@ -22,11 +21,11 @@ public:
 	Logger log_file_;
 
 private:
-	tcp::acceptor acceptor_;
-	std::vector<std::string> requests_;
-	std::string request_;
+	boost::asio::ip::tcp::acceptor acceptor_;
 	BufferPool buffer_pool_;
 	SqlCommander sql_;
+	std::vector<std::string> requests_;
+	std::string request_;
 
 public:
 	Lobby() = delete; // Запрещаем создавать конструктор по умолчанию явно
@@ -35,7 +34,9 @@ public:
 
 private:
 	void start_accept();
-	void start_read(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-	void send_message(std::shared_ptr<boost::asio::ip::tcp::socket> socket, const std::string& message);
+	void on_accept(boost::system::error_code ec, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+	void do_websocket_session(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+	void start_read(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws);
+	void send_message(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws, const std::string& message);
 	void string_splitting(const std::string& request);
 };
