@@ -23,5 +23,6 @@ public:
 	{
 		std::lock_guard<std::mutex> lock(log_mutex_); // Работает только 1 поток
 		log_file_ << "SERVER " << fmt::format(fmt_str, std::forward<Args>(args)...) << "\n";
+		log_file_.flush(); // Очищаем буффер
 	}
 };

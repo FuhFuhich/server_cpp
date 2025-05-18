@@ -25,7 +25,6 @@ private:
 	tcp::acceptor acceptor_;
 	std::vector<std::string> requests_;
 	std::string request_;
-	boost::asio::ssl::context ssl_context_;
 	BufferPool buffer_pool_;
 	SqlCommander sql_;
 
@@ -36,7 +35,7 @@ public:
 
 private:
 	void start_accept();
-	void start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket);
-	void send_message(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const std::string& message);
+	void start_read(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
+	void send_message(std::shared_ptr<boost::asio::ip::tcp::socket> socket, const std::string& message);
 	void string_splitting(const std::string& request);
 };

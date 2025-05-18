@@ -1,28 +1,18 @@
 #include "Lobby.h";
 
 Lobby::Lobby(boost::asio::io_context& io_context, const short& port)
-	: acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
-	ssl_context_(boost::asio::ssl::context::sslv23),
-	log_file_("server_output.txt")
+    : acceptor_(io_context, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
+      log_file_("server_output.txt")
 {
-	try
-	{
-		// устанавливаем параметры для ssl_context_
-		ssl_context_.set_options(boost::asio::ssl::context::default_workarounds |
-			boost::asio::ssl::context::no_sslv2 |
-			boost::asio::ssl::context::single_dh_use);
-		
-		// загружаем сертификат и ключ в ssl_context_
-		ssl_context_.use_certificate_chain_file("certs/server.crt");
-		ssl_context_.use_private_key_file("certs/server.key", boost::asio::ssl::context::pem);
-
-		log_file_.log("SSL server started on port: {}", port);
-		start_accept();
-	}
-	catch (const std::exception& e)
-	{
-		log_file_.log("Exception in Lobby constructor: {}", e.what());
-	}
+    try
+    {
+        log_file_.log("TCP server started on port: {}", port);
+        start_accept();
+    }
+    catch (const std::exception& e)
+    {
+        log_file_.log("Exception in Lobby constructor: {}", e.what());
+    }
 }
 
 Lobby::~Lobby()
@@ -42,30 +32,16 @@ void Lobby::start_accept()
 {
 	try
 	{
-		auto ssl_socket = std::make_shared<boost::asio::ssl::stream<tcp::socket>>(acceptor_.get_executor(), ssl_context_);
+		auto socket = std::make_shared<boost::asio::ip::tcp::socket>(acceptor_.get_executor());
 
-		// Ожидаем подключения
-		acceptor_.async_accept(ssl_socket->next_layer(),
-			[this, ssl_socket](boost::system::error_code ec)
+		// Ожидаем подключение
+		acceptor_.async_accept(*socket,
+			[this, socket](boost::system::error_code ec)
 			{
 				if (!ec)
 				{
-					log_file_.log("Client connected, start SSL handshake");
-
-					// Трехстороннее рукопожатие
-					ssl_socket->async_handshake(boost::asio::ssl::stream_base::server,
-						[this, ssl_socket](boost::system::error_code ec)
-						{
-							if (!ec)
-							{
-								log_file_.log("SSL handshake successful");
-								start_read(ssl_socket);
-							}
-							else
-							{
-								log_file_.log("SSL handshake failed: {}", ec.message());
-							}
-						});
+					log_file_.log("Client connected");
+					start_read(socket);
 				}
 				else
 				{
@@ -81,15 +57,14 @@ void Lobby::start_accept()
 	}
 }
 
-void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket)
+void Lobby::start_read(std::shared_ptr<boost::asio::ip::tcp::socket> socket)
 {
 	try
 	{
 		auto buffer = buffer_pool_.get_buffer();
 
-		// Ждем сообщения
-		ssl_socket->async_read_some(boost::asio::buffer(*buffer),
-			[this, ssl_socket, buffer](boost::system::error_code ec, std::size_t length)
+		socket->async_read_some(boost::asio::buffer(*buffer),
+			[this, socket, buffer](boost::system::error_code ec, std::size_t length)
 			{
 				if (!ec)
 				{
@@ -97,46 +72,46 @@ void Lobby::start_read(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ss
 					// <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
 					request_ = std::string(buffer->data(), length);
 					log_file_.log("Received: {}", request_);
+					std::cout << request_ << "\n\n";
 
 					string_splitting(request_);
 					sql_.execute_sql_command(requests_);
+
 					// Логика для запроса к бд
+
 					requests_.clear();
 
-					// Сделать возврат execute_sql_command и отправка сообщения
-					send_message(ssl_socket, std::string(buffer->data(), length));
+					send_message(socket, std::string(buffer->data(), length));
 
 					buffer_pool_.release(buffer);
 
-					this->start_read(ssl_socket);
+					this->start_read(socket);
 				}
 				else
 				{
 					log_file_.log("SOCKET is close");
-					// Закрываем TCP соединение, т.е. сокет
-					ssl_socket->lowest_layer().close();
-
+					socket->close();
 					log_file_.log("Client disconnect: {}", ec.message());
 				}
 			});
 	}
 	catch (const std::exception& e)
 	{
-		log_file_.log("Exception in Lobby start_read: ", e.what());
+		log_file_.log("Exception in Lobby start_read: {}", e.what());
 	}
 }
 
-void Lobby::send_message(std::shared_ptr<boost::asio::ssl::stream<tcp::socket>> ssl_socket, const std::string& message)
+void Lobby::send_message(std::shared_ptr<boost::asio::ip::tcp::socket> socket, const std::string& message)
 {
 	try
 	{
 		auto buffer = std::make_shared<std::string>(message);
 
-		// Записываем сообщение
+		// Записываем сообщения
 		boost::asio::async_write(
-			*ssl_socket,
+			*socket,
 			boost::asio::buffer(*buffer),
-			[this, ssl_socket, buffer](boost::system::error_code ec, std::size_t)
+			[this, socket, buffer](boost::system::error_code ec, std::size_t)
 			{
 				if (!ec)
 				{

@@ -12,7 +12,7 @@ int main()
 		Lobby Lobby(io_context, port);
 
 		std::vector<std::thread> threads;
-		int thread_count = std::thread::hardware_concurrency(); // Может 0 потоков вернуть
+		int thread_count = std::thread::hardware_concurrency() / 2; // Может 0 потоков вернуть
 		if (thread_count == 0) thread_count = 1;
 
 		for (int i = 0; i < thread_count; ++i)
@@ -23,7 +23,7 @@ int main()
 
 		for (auto& thread : threads)
 		{
-			// ждем, пока все потоки завершат своб работу
+			// ждем, пока все потоки завершат свою работу
 			thread.join();
 		}
 	}

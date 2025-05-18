@@ -3,7 +3,6 @@
 Logger::Logger(const std::string& filename)
 {
 	log_file_.open(filename, std::ios::app);
-	log_file_.setf(std::ios::unitbuf); // Убираем буфферизацию и сразу записываем
 
 	if (!log_file_.is_open())
 	{
