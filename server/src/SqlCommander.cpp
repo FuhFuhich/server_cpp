@@ -8,12 +8,13 @@ SqlCommander::SqlCommander()
         auto env = load_env("config.env");
 
         host_ = env["HOST"];
+        port_ = env["PORT"];
         dbname_ = env["DBNAME"];
         user_ = env["USER"];
         password_ = env["PASSWORD"];
 
-        std::string conn_str = fmt::format("host={} dbname={} user={} password={}",
-            host_, dbname_, user_, password_);
+        std::string conn_str = fmt::format("host={} port={} dbname={} user={} password={}",
+            host_, port_, dbname_, user_, password_);
 
         conn_ = PQconnectdb(conn_str.c_str());
 
