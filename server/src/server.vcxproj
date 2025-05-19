@@ -139,6 +139,7 @@
     <ClInclude Include="Lobby.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="SqlCommander.h" />
+    <ClInclude Include="utf8.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="config.env" />

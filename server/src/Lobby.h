@@ -3,6 +3,7 @@
 #include "Logger.h"
 #include "BufferPool.h"
 #include "SqlCommander.h"
+#include "utf8.h"
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>

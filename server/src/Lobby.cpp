@@ -99,7 +99,6 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
                     // <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
                     request_ = boost::beast::buffers_to_string(buffer->data());
                     log_file_.log("Received: {}", request_);
-                    std::cout << request_ << "\n\n";
 
                     string_splitting(request_);
                     sql_.execute_sql_command(requests_);
@@ -108,6 +107,7 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
 
                     requests_.clear();
 
+                    // Вот тут реализовать возврат
                     send_message(ws, std::string(boost::beast::buffers_to_string(buffer->data())));
 
                     this->start_read(ws);
