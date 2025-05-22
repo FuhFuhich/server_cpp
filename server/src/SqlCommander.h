@@ -13,6 +13,7 @@ class SqlCommander
 {
 private:
     std::string host_;
+    std::string port_;
     std::string dbname_;
     std::string user_;
     std::string password_;

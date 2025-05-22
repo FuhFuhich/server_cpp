@@ -13,6 +13,7 @@
 #include <iostream>
 #include <chrono>
 #include <vector>
+#include <queue>
 
 using boost::asio::ip::tcp;
 
@@ -22,6 +23,8 @@ public:
 	Logger log_file_;
 
 private:
+	std::queue<std::shared_ptr<std::string>> write_queue_;
+	bool writing_ = false;
 	boost::asio::ip::tcp::acceptor acceptor_;
 	BufferPool buffer_pool_;
 	SqlCommander sql_;
@@ -40,4 +43,5 @@ private:
 	void start_read(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws);
 	void send_message(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws, const std::string& message);
 	void string_splitting(const std::string& request);
+	void do_write(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws);
 };
