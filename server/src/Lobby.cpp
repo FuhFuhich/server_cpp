@@ -129,10 +129,12 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
 
 void Lobby::do_write(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws)
 {
-    if (write_queue_.empty()) {
+    if (write_queue_.empty()) 
+    {
         writing_ = false;
         return;
     }
+
     writing_ = true;
     auto buffer = write_queue_.front();
 
