@@ -17,7 +17,7 @@ private:
     std::string dbname_;
     std::string user_;
     std::string password_;
-    PGconn* conn_;
+    PGconn* conn_{ nullptr };
     Logger log_file_;
 
 public:

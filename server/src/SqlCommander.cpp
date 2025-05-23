@@ -1,31 +1,26 @@
 #include "SqlCommander.h"
 
-SqlCommander::SqlCommander() 
-    : log_file_("server_output.txt")
+SqlCommander::SqlCommander()
+    : conn_(nullptr),
+    log_file_("server_output.txt")
 {
-    try
+    auto env = load_env("config.env");
+
+    host_ = env.at("HOST");
+    port_ = env.at("PORT");
+    dbname_ = env.at("DBNAME");
+    user_ = env.at("USER");
+    password_ = env.at("PASSWORD");
+
+    std::string conn_str = fmt::format(
+        "host={} port={} dbname={} user={} password={}",
+        host_, port_, dbname_, user_, password_);
+
+    conn_ = PQconnectdb(conn_str.c_str());
+
+    if (PQstatus(conn_) != CONNECTION_OK)
     {
-        auto env = load_env("config.env");
-
-        host_ = env["HOST"];
-        port_ = env["PORT"];
-        dbname_ = env["DBNAME"];
-        user_ = env["USER"];
-        password_ = env["PASSWORD"];
-
-        std::string conn_str = fmt::format("host={} port={} dbname={} user={} password={}",
-            host_, port_, dbname_, user_, password_);
-
-        conn_ = PQconnectdb(conn_str.c_str());
-
-        if (PQstatus(conn_) != CONNECTION_OK)
-        {
-            log_file_.log("SqlCommander != CONNECTION_OK in SqlCommander()");
-        }
-    }
-    catch (const std::exception& e)
-    {
-        log_file_.log("Exception in SqlCommander SqlCommander(): {}", e.what());
+        throw std::runtime_error(std::string("DB connection failed: ") + PQerrorMessage(conn_));
     }
 }
 
