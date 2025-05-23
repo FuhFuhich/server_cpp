@@ -20,6 +20,7 @@ SqlCommander::SqlCommander()
 
     if (PQstatus(conn_) != CONNECTION_OK)
     {
+        log_file_.log("SqlCommander != CONNECTION_OK in SqlCommander()");
         throw std::runtime_error(std::string("DB connection failed: ") + PQerrorMessage(conn_));
     }
 }
