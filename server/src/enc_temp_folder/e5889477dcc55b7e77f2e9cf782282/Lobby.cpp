@@ -23,25 +23,9 @@ Lobby::~Lobby()
     }
 }
 
-std::string Lobby::string_splitting(std::string& request_)
+void Lobby::string_splitting(const std::string& request)
 {
-    //boost::split(requests_, request, boost::is_any_of(" "), boost::token_compress_on);
-
-    size_t space_pos = request_.find(' ');
-    std::string type = "";
-
-    if (space_pos != std::string::npos) 
-    {
-        type = request_.substr(0, space_pos);
-        request_ = request_.substr(space_pos + 1);
-    }
-    else 
-    {
-        type = request_;
-        request_.clear();
-    }
-
-    return type;
+    boost::split(requests_, request, boost::is_any_of(" "), boost::token_compress_on);
 }
 
 void Lobby::start_accept()
@@ -102,13 +86,12 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
 {
     try
     {
-        std::string type;
         auto buffer = std::make_shared<boost::beast::flat_buffer>();
 
         // Читаем WebSocket сообщение в буфер
         ws->async_read(
             *buffer,
-            [this, ws, buffer, &type](boost::system::error_code ec, std::size_t length)
+            [this, ws, buffer](boost::system::error_code ec, std::size_t length)
             {
                 if (!ec)
                 {
@@ -118,8 +101,8 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
                     log_file_.log("Received: {}", request_);
                     std::cout << "connection successful\n" << request_ << "\n\n";
 
-                    type = string_splitting(request_);
-                    sql_.execute_sql_command(type, request_);
+                    string_splitting(request_);
+                    sql_.execute_sql_command(requests_);
 
                     // Логика для запроса к бд
 

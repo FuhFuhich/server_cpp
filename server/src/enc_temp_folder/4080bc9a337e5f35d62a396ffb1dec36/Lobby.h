@@ -42,6 +42,6 @@ private:
 	void do_websocket_session(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 	void start_read(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws);
 	void send_message(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws, const std::string& message);
-	std::string string_splitting(std::string& request);
+	void string_splitting(const std::string& request);
 	void do_write(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws);
 };

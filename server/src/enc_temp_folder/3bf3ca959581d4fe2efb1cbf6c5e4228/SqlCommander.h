@@ -25,20 +25,9 @@ public:
     ~SqlCommander();
 
 public:
-    std::string execute_sql_command(const std::string& type_, std::string& request_);
+    std::string execute_sql_command(const std::vector<std::string>& requests_);
 
 private:
     std::map<std::string, std::string> load_env(const std::string& filename);
-
-    // add new records in some table
-    void add_buyers(std::string& request_);
-    void add_suppliers(std::string& request_);
-    void add_products(std::string& request_);
-    void add_warehouses(std::string& request_);
-
-    // get records from db
-    std::string get_buyers();
-    std::string get_suppliers();
-    std::string get_products();
-    std::string get_warehouses();
+    std::string create_table();
 };

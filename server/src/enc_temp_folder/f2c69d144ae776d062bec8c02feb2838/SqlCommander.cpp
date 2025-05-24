@@ -63,58 +63,27 @@ std::map<std::string, std::string> SqlCommander::load_env(const std::string& fil
     return env;
 }
 
-std::string SqlCommander::execute_sql_command(const std::string &type_, std::string &request_)
+std::string SqlCommander::execute_sql_command(const std::vector<std::string>& requests_)
 {
     try
     {
-        if (type_ == "buyersAdd")
+        if (requests_[0] == "create")
         {
-            add_buyers(request_);
-        }
-        else if (type_ == "suppliersAdd")
-        {
-            add_suppliers(request_);
-        }
-        else if (type_ == "productsAdd")
-        {
-            add_products(request_);
-        }
-        else if (type_ == "warehousesAdd")
-        {
-            add_warehouses(request_);
-        }
-        else if (type_ == "buyersGet")
-        {
-            return get_buyers();
-        }
-        else if (type_ == "suppliersGet")
-        {
-            return get_suppliers();
-        }
-        else if (type_ == "productsGet")
-        {
-            return get_products();
-        }
-        else if (type_ == "warehousesGet")
-        {
-            return get_warehouses();
+            return create_table();
         }
         else
         {
-            // nya
+            return "";
         }
-
-        return "";
     }
     catch (const std::exception& e)
     {
         log_file_.log("Exception in SqlCommander ExecuteSqlCommand: {}", e.what());
-
         return "";
     }
 }
 
-void SqlCommander::add_buyers(std::string& request_)
+std::string SqlCommander::create_table() 
 {
     try 
     {
@@ -130,14 +99,17 @@ void SqlCommander::add_buyers(std::string& request_)
         {
             log_file_.log("Table creation failed: {}", PQerrorMessage(conn_));
             PQclear(res);
+            return "";
         }
 
         log_file_.log("Table created successfully");
         PQclear(res);
+        return "nya";
 
     }
     catch (const std::exception& e) 
     {
         log_file_.log("Exception in create_table in SqlCommander: {}", e.what());
+        return "";
     }
 }
