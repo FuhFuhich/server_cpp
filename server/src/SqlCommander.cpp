@@ -100,11 +100,11 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
         }
         else if (type == "registration")
         {
-            registration(payload);
+            return registration(payload);
         }
         else if (type == "login")
         {
-            login(payload);
+            return login(payload);
         }
         else
         {

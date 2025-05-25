@@ -119,14 +119,12 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
                     type = string_splitting(payload);
                     profile_id = string_splitting(payload);
 
-                    sql_.execute_sql_command(type, profile_id, payload);
+                    std::string reply = sql_.execute_sql_command(type, profile_id, payload);
 
-                    // Логика для запроса к бд
-
-                    requests_.clear();
-
-                    // Вот тут реализовать возврат
-                    //send_message(ws, "nya");
+                    if (!reply.empty())
+                    {
+                        send_message(ws, reply);
+                    }
 
                     this->start_read(ws);
                 }
