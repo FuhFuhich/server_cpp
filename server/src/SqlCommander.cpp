@@ -72,7 +72,7 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
         }
         else if (type == "suppliersAdd")
         {
-            //add_suppliers(request_);
+            add_suppliers(chat_id, payload);
         }
         else if (type == "productsAdd")
         {
@@ -175,10 +175,9 @@ void SqlCommander::add_buyers(const std::string& chat_id, const std::string& pay
         VALUES ($1,$2);
     )";
 
-    // chat_id тоже строка, но у вас в БД profile_id — INTEGER:
     const char* link_params[2] = {
-        chat_id.c_str(),   // e.g. "123456"
-        id_str             // из шага выше
+        chat_id.c_str(),
+        id_str
     };
 
     PGresult* link_res = PQexecParams(
@@ -203,6 +202,100 @@ void SqlCommander::add_buyers(const std::string& chat_id, const std::string& pay
     else 
     {
         log_file_.log("link insert succeeded: profile_id={}, buyer_id={}", chat_id, buyer_id);
+    }
+
+    PQclear(link_res);
+}
+
+void SqlCommander::add_suppliers(const std::string& chat_id, const std::string& payload)
+{
+    // Парсим джейсон
+    auto j = nlohmann::json::parse(payload);
+    std::string name = j.value("name", "");
+    std::string address = j.value("address", "");
+    std::string email = j.value("email", "");
+    std::string phone = j.value("phone", "");
+    std::string tin = j.value("tin", "");
+    std::string bankDetails = j.value("bankDetails", "");
+    std::string note = j.value("note", "");
+
+    static const char* insert_supplier_sql = R"(
+        INSERT INTO buyers_suppliers
+          (name, address, email, phone, tin, bank_details, note, sup)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        RETURNING id_buyer;
+    )";
+
+    const char* supplier_params[8] = {
+        name.c_str(), address.c_str(), email.c_str(),
+        phone.c_str(), tin.c_str(), bankDetails.c_str(),
+        note.c_str(), "true"
+    };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        insert_supplier_sql,
+        8,
+        nullptr,
+        supplier_params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        log_file_.log("add_suppliers: PQexecParams returned nullptr: {}", PQerrorMessage(conn_));
+        return;
+    }
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
+        log_file_.log("add_suppliers failed: {}", PQresultErrorMessage(res));
+        PQclear(res);
+        return;
+    }
+
+    char* id_str = PQgetvalue(res, 0, 0);
+    int   supplier_id = std::atoi(id_str);
+    PQclear(res);
+
+    log_file_.log("add_suppliers: new supplier_id = {}", supplier_id);
+
+    static const char* insert_link_sql = R"(
+        INSERT INTO profile_suppliers (profile_id, supplier_id)
+        VALUES ($1,$2);
+    )";
+
+    const char* link_params[2] = {
+        chat_id.c_str(),
+        id_str
+    };
+
+    PGresult* link_res = PQexecParams(
+        conn_,
+        insert_link_sql,
+        2,
+        nullptr,
+        link_params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!link_res) 
+    {
+        log_file_.log("link insert: PQexecParams returned nullptr: {}", PQerrorMessage(conn_));
+    }
+    else if (PQresultStatus(link_res) != PGRES_COMMAND_OK) 
+    {
+        log_file_.log("link insert failed: {}", PQresultErrorMessage(link_res));
+    }
+    else 
+    {
+        log_file_.log(
+            "link insert succeeded: profile_id={}, supplier_id={}",
+            chat_id, supplier_id
+        );
     }
 
     PQclear(link_res);

@@ -33,7 +33,7 @@ private:
 
     // add new records in some table
     void add_buyers(const std::string& chat_id, const std::string& payload);
-    //void add_suppliers(std::string& request_);
+    void add_suppliers(const std::string& chat_id, const std::string& payload);
     //void add_products(std::string& request_);
     //void add_warehouses(std::string& request_);
 
