@@ -23,25 +23,21 @@ Lobby::~Lobby()
     }
 }
 
-std::string Lobby::string_splitting(std::string& request_)
+std::string Lobby::string_splitting(std::string& source) 
 {
     //boost::split(requests_, request, boost::is_any_of(" "), boost::token_compress_on);
 
-    size_t space_pos = request_.find(' ');
-    std::string type = "";
+    size_t pos = source.find(' ');
 
-    if (space_pos != std::string::npos) 
+    if (pos == std::string::npos) 
     {
-        type = request_.substr(0, space_pos);
-        request_ = request_.substr(space_pos + 1);
+        std::string cmd = source;
+        source.clear();
+        return cmd;
     }
-    else 
-    {
-        type = request_;
-        request_.clear();
-    }
-
-    return type;
+    std::string cmd = source.substr(0, pos);
+    source.erase(0, pos + 1);
+    return cmd;
 }
 
 void Lobby::start_accept()
@@ -102,18 +98,18 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
 {
     try
     {
-        std::string type;
         auto buffer = std::make_shared<boost::beast::flat_buffer>();
 
         // Читаем WebSocket сообщение в буфер
         ws->async_read(
             *buffer,
-            [this, ws, buffer, &type](boost::system::error_code ec, std::size_t length)
+            [this, ws, buffer](boost::system::error_code ec, std::size_t length)
             {
                 if (!ec)
                 {
                     // Формат отправки сообщения:
                     // <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
+                    std::string type;
                     request_ = boost::beast::buffers_to_string(buffer->data());
                     log_file_.log("Received: {}", request_);
                     std::cout << "connection successful\n" << request_ << "\n\n";

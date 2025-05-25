@@ -1,8 +1,7 @@
 #include "SqlCommander.h"
 
 SqlCommander::SqlCommander()
-    : conn_(nullptr),
-    log_file_("server_output.txt")
+    : log_file_("server_output.txt")
 {
     auto env = load_env("config.env");
 
@@ -63,41 +62,41 @@ std::map<std::string, std::string> SqlCommander::load_env(const std::string& fil
     return env;
 }
 
-std::string SqlCommander::execute_sql_command(const std::string &type_, std::string &request_)
+std::string SqlCommander::execute_sql_command(const std::string& type, const std::string& payload)
 {
     try
     {
-        if (type_ == "buyersAdd")
+        if (type == "buyersAdd")
         {
-            add_buyers(request_);
+            add_buyers(payload);
         }
-        else if (type_ == "suppliersAdd")
+        else if (type == "suppliersAdd")
         {
-            add_suppliers(request_);
+            //add_suppliers(request_);
         }
-        else if (type_ == "productsAdd")
+        else if (type == "productsAdd")
         {
-            add_products(request_);
+            //add_products(request_);
         }
-        else if (type_ == "warehousesAdd")
+        else if (type == "warehousesAdd")
         {
-            add_warehouses(request_);
+            //add_warehouses(request_);
         }
-        else if (type_ == "buyersGet")
+        else if (type == "buyersGet")
         {
-            return get_buyers();
+            //return get_buyers();
         }
-        else if (type_ == "suppliersGet")
+        else if (type == "suppliersGet")
         {
-            return get_suppliers();
+            //return get_suppliers();
         }
-        else if (type_ == "productsGet")
+        else if (type == "productsGet")
         {
-            return get_products();
+            //return get_products();
         }
-        else if (type_ == "warehousesGet")
+        else if (type == "warehousesGet")
         {
-            return get_warehouses();
+            //return get_warehouses();
         }
         else
         {
@@ -114,7 +113,7 @@ std::string SqlCommander::execute_sql_command(const std::string &type_, std::str
     }
 }
 
-void SqlCommander::add_buyers(std::string& request_)
+void SqlCommander::add_buyers(const std::string& payload)
 {
     try 
     {
