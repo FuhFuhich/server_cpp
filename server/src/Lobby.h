@@ -29,7 +29,7 @@ private:
 	BufferPool buffer_pool_;
 	SqlCommander sql_;
 	std::vector<std::string> requests_;
-	std::string request_;
+	std::string payload;
 
 public:
 	Lobby() = delete; // Запрещаем создавать конструктор по умолчанию явно

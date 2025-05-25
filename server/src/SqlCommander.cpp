@@ -62,13 +62,13 @@ std::map<std::string, std::string> SqlCommander::load_env(const std::string& fil
     return env;
 }
 
-std::string SqlCommander::execute_sql_command(const std::string& type, const std::string& payload)
+std::string SqlCommander::execute_sql_command(const std::string& type, const std::string& chat_id, const std::string& payload)
 {
     try
     {
         if (type == "buyersAdd")
         {
-            add_buyers(payload);
+            add_buyers(chat_id, payload);
         }
         else if (type == "suppliersAdd")
         {
@@ -113,73 +113,97 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
     }
 }
 
-void SqlCommander::add_buyers(const std::string& payload) 
+void SqlCommander::add_buyers(const std::string& chat_id, const std::string& payload)
 {
-    try 
+    // Парсим джейсон
+    auto j = nlohmann::json::parse(payload);
+    std::string name = j.value("name", "");
+    std::string address = j.value("address", "");
+    std::string email = j.value("email", "");
+    std::string phone = j.value("phone", "");
+    std::string tin = j.value("tin", "");
+    std::string bankDetails = j.value("bankDetails", "");
+    std::string note = j.value("note", "");
+
+    static const char* insert_buyer_sql = R"(
+        INSERT INTO buyers_suppliers
+         (name, address, email, phone, tin, bank_details, note, sup)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        RETURNING id_buyer;
+    )";
+
+    const char* buyer_params[8] = {
+        name.c_str(), address.c_str(), email.c_str(),
+        phone.c_str(), tin.c_str(), bankDetails.c_str(),
+        note.c_str(), "false"
+    };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        insert_buyer_sql,
+        8,
+        nullptr,      
+        buyer_params,
+        nullptr,
+        nullptr,
+        0             
+    );
+
+    if (!res) 
     {
-        // Парсим джейсон
-        auto j = nlohmann::json::parse(payload);
+        log_file_.log("add_buyers: PQexecParams returned nullptr: {}",
+            PQerrorMessage(conn_));
+        return;
+    }
 
-        // Извлекаем поля из json
-        std::string name = j.value("name", "");
-        std::string address = j.value("address", "");
-        std::string email = j.value("email", "");
-        std::string phone = j.value("phone", "");
-        std::string tin = j.value("tin", "");
-        std::string bankDetails = j.value("bankDetails", "");
-        std::string note = j.value("note", "");
-
-        const char* sql =
-            "INSERT INTO buyers_suppliers "
-            "(name, address, email, phone, tin, bank_details, note, sup) "
-            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8);";
-
-        const char* params[8] = {
-            name.c_str(),
-            address.c_str(),
-            email.c_str(),
-            phone.c_str(),
-            tin.c_str(),
-            bankDetails.c_str(),
-            note.c_str(),
-            "false"
-        };
-
-        PGresult* res = PQexecParams(
-            conn_,               // соединение
-            sql,                 // сам запрос
-            8,                   // количество параметров
-            nullptr,             // типы параметров
-            params,              // сами значения
-            nullptr,             // длина
-            nullptr,             // формат
-            0                    // результат в текстовом формате
-        );
-
-        ExecStatusType status = PQresultStatus(res);
-        const char* errMsg = PQresultErrorMessage(res);
-
-        if (PQresultStatus(res) != PGRES_COMMAND_OK)
-        {
-            log_file_.log("add_buyers failed: {}", PQerrorMessage(conn_));
-            log_file_.log("add_buyers failed: {}", PQresultErrorMessage(res));
-        }
-        else 
-        {
-            std::cout << "add_buyers succeeded\n";
-            log_file_.log("add_buyers succeeded");
-        }
-
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
+        log_file_.log("add_buyers failed: {}",
+            PQresultErrorMessage(res));
         PQclear(res);
+        return;
     }
-    catch (const nlohmann::json::parse_error& e) 
+
+    char* id_str = PQgetvalue(res, 0, 0);
+    int   buyer_id = std::atoi(id_str);
+    PQclear(res);
+
+    log_file_.log("add_buyers: new buyer_id = {}", buyer_id);
+
+    static const char* insert_link_sql = R"(
+        INSERT INTO profile_buyers (profile_id, buyer_id)
+        VALUES ($1,$2);
+    )";
+
+    // chat_id тоже строка, но у вас в БД profile_id — INTEGER:
+    const char* link_params[2] = {
+        chat_id.c_str(),   // e.g. "123456"
+        id_str             // из шага выше
+    };
+
+    PGresult* link_res = PQexecParams(
+        conn_,
+        insert_link_sql,
+        2,
+        nullptr,
+        link_params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!link_res) 
     {
-        std::cout << "JSON parse error in add_buyers: {}\n";
-        log_file_.log("JSON parse error in add_buyers: {}", e.what());
+        log_file_.log("link insert: PQexecParams returned nullptr: {}", PQerrorMessage(conn_));
     }
-    catch (const std::exception& e) 
+    else if (PQresultStatus(link_res) != PGRES_COMMAND_OK) 
     {
-        std::cout << "Exception in add_buyers: {}\n";
-        log_file_.log("Exception in add_buyers: {}", e.what());
+        log_file_.log("link insert failed: {}", PQresultErrorMessage(link_res));
     }
+    else 
+    {
+        log_file_.log("link insert succeeded: profile_id={}, buyer_id={}", chat_id, buyer_id);
+    }
+
+    PQclear(link_res);
 }
