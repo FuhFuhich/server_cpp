@@ -157,6 +157,11 @@ void Lobby::do_write(std::shared_ptr<boost::beast::websocket::stream<boost::asio
         boost::asio::buffer(*buffer),
         [this, ws, buffer](boost::system::error_code ec, std::size_t)
         {
+            std::cout
+                << "nyaaaafhdaifuhdiuofdhfodiufhoifdsuh              "
+                << *buffer
+                << std::endl;
+
             write_queue_.pop();
 
             if (!ec)

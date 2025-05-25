@@ -426,3 +426,4 @@ std::string SqlCommander::login(const std::string& payload)
 
     return "profileGet " + resp.dump();
 }
+
