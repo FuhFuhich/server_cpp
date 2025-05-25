@@ -62,17 +62,17 @@ std::map<std::string, std::string> SqlCommander::load_env(const std::string& fil
     return env;
 }
 
-std::string SqlCommander::execute_sql_command(const std::string& type, const std::string& chat_id, const std::string& payload)
+std::string SqlCommander::execute_sql_command(const std::string& type, const std::string& profile_id, const std::string& payload)
 {
     try
     {
         if (type == "buyersAdd")
         {
-            add_buyers(chat_id, payload);
+            add_buyers(profile_id, payload);
         }
         else if (type == "suppliersAdd")
         {
-            add_suppliers(chat_id, payload);
+            add_suppliers(profile_id, payload);
         }
         else if (type == "productsAdd")
         {
@@ -98,6 +98,14 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
         {
             //return get_warehouses();
         }
+        else if (type == "registration")
+        {
+            registration(payload);
+        }
+        else if (type == "login")
+        {
+            login(payload);
+        }
         else
         {
             // nya
@@ -113,7 +121,7 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
     }
 }
 
-void SqlCommander::add_buyers(const std::string& chat_id, const std::string& payload)
+void SqlCommander::add_buyers(const std::string& profile_id, const std::string& payload)
 {
     // Парсим джейсон
     auto j = nlohmann::json::parse(payload);
@@ -176,7 +184,7 @@ void SqlCommander::add_buyers(const std::string& chat_id, const std::string& pay
     )";
 
     const char* link_params[2] = {
-        chat_id.c_str(),
+        profile_id.c_str(),
         id_str
     };
 
@@ -201,13 +209,13 @@ void SqlCommander::add_buyers(const std::string& chat_id, const std::string& pay
     }
     else 
     {
-        log_file_.log("link insert succeeded: profile_id={}, buyer_id={}", chat_id, buyer_id);
+        log_file_.log("link insert succeeded: profile_id={}, buyer_id={}", profile_id, buyer_id);
     }
 
     PQclear(link_res);
 }
 
-void SqlCommander::add_suppliers(const std::string& chat_id, const std::string& payload)
+void SqlCommander::add_suppliers(const std::string& profile_id, const std::string& payload)
 {
     // Парсим джейсон
     auto j = nlohmann::json::parse(payload);
@@ -267,7 +275,7 @@ void SqlCommander::add_suppliers(const std::string& chat_id, const std::string& 
     )";
 
     const char* link_params[2] = {
-        chat_id.c_str(),
+        profile_id.c_str(),
         id_str
     };
 
@@ -294,9 +302,127 @@ void SqlCommander::add_suppliers(const std::string& chat_id, const std::string& 
     {
         log_file_.log(
             "link insert succeeded: profile_id={}, supplier_id={}",
-            chat_id, supplier_id
+            profile_id, supplier_id
         );
     }
 
     PQclear(link_res);
+}
+
+std::string SqlCommander::registration(const std::string& payload) 
+{
+    auto req = nlohmann::json::parse(payload);
+    std::string login = req.value("login", "");
+    std::string password = req.value("password", "");
+
+    static const char* sql =
+        "INSERT INTO profile (login, password) "
+        "VALUES ($1, $2) "
+        "RETURNING id_user;";
+
+    const char* params[2] = {
+        login.c_str(),
+        password.c_str()
+    };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        sql,
+        2,
+        nullptr,
+        params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        return "profileGet " + nlohmann::json{{"error", err}}.dump();
+    }
+
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
+        std::string err = PQresultErrorMessage(res);
+        PQclear(res);
+        return "profileGet " + nlohmann::json{{"error", err}}.dump();
+    }
+
+    int new_id = std::atoi(PQgetvalue(res, 0, 0));
+    PQclear(res);
+
+    nlohmann::json resp = {
+        {"id_user", new_id},
+        {"login",   login}
+    };
+
+    return "profileGet " + resp.dump();
+}
+
+std::string SqlCommander::login(const std::string& payload) 
+{
+    auto req = nlohmann::json::parse(payload);
+    std::string login = req.value("login", "");
+    std::string password = req.value("password", "");
+
+    static const char* sql =
+        "SELECT id_user, first_name, last_name, login, phone, email, photouri "
+        "FROM profile "
+        "WHERE login = $1 AND password = $2;";
+
+    const char* params[2] = {
+        login.c_str(),
+        password.c_str()
+    };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        sql,
+        2,
+        nullptr,
+        params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        return "profileGet " + nlohmann::json{{"error", err}}.dump();
+    }
+
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+        std::string err = PQresultErrorMessage(res);
+        PQclear(res);
+        return "profileGet " + nlohmann::json{{"error", err}}.dump();
+    }
+
+    if (PQntuples(res) == 0) 
+    {
+        PQclear(res);
+        return "profileGet " + nlohmann::json{{"error", "Invalid credentials"}}.dump();
+    }
+
+    int id = std::atoi(PQgetvalue(res, 0, 0));
+    const char* fn = PQgetvalue(res, 0, 1);
+    const char* ln = PQgetvalue(res, 0, 2);
+    const char* lg = PQgetvalue(res, 0, 3);
+    const char* ph = PQgetvalue(res, 0, 4);
+    const char* em = PQgetvalue(res, 0, 5);
+    const char* pu = PQgetvalue(res, 0, 6);
+    PQclear(res);
+
+    nlohmann::json resp = {
+        {"id_user",    id},
+        {"first_name", fn},
+        {"last_name",  ln},
+        {"login",      lg},
+        {"phone",      ph},
+        {"email",      em},
+        {"photouri",   pu}
+    };
+
+    return "profileGet " + resp.dump();
 }

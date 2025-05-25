@@ -26,14 +26,14 @@ public:
     ~SqlCommander();
 
 public:
-    std::string execute_sql_command(const std::string& type, const std::string& chat_id, const std::string& payload);
+    std::string execute_sql_command(const std::string& type, const std::string& profile_id, const std::string& payload);
 
 private:
     std::map<std::string, std::string> load_env(const std::string& filename);
 
     // add new records in some table
-    void add_buyers(const std::string& chat_id, const std::string& payload);
-    void add_suppliers(const std::string& chat_id, const std::string& payload);
+    void add_buyers(const std::string& profile_id, const std::string& payload);
+    void add_suppliers(const std::string& profile_id, const std::string& payload);
     //void add_products(std::string& request_);
     //void add_warehouses(std::string& request_);
 
@@ -42,4 +42,7 @@ private:
     //std::string get_suppliers();
     //std::string get_products();
     //std::string get_warehouses();
+
+    std::string registration(const std::string& payload);
+    std::string login(const std::string& payload);
 };

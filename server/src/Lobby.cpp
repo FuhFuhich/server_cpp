@@ -110,16 +110,16 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
                     // Формат отправки сообщения:
                     // <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
                     std::string type = "";
-                    std::string chat_id = "";
+                    std::string profile_id = "";
 
                     payload = boost::beast::buffers_to_string(buffer->data());
                     log_file_.log("Received: {}", payload);
                     std::cout << "connection successful\n" << payload << "\n\n";
 
                     type = string_splitting(payload);
-                    chat_id = string_splitting(payload);
+                    profile_id = string_splitting(payload);
 
-                    sql_.execute_sql_command(type, chat_id, payload);
+                    sql_.execute_sql_command(type, profile_id, payload);
 
                     // Логика для запроса к бд
 
