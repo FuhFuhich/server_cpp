@@ -113,30 +113,73 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
     }
 }
 
-void SqlCommander::add_buyers(const std::string& payload)
+void SqlCommander::add_buyers(const std::string& payload) 
 {
     try 
     {
-        const char* create_table_query = R"(
-            CREATE TABLE user (
-                id_user INTEGER PRIMARY KEY
-            );
-        )";
+        // Парсим джейсон
+        auto j = nlohmann::json::parse(payload);
 
-        PGresult* res = PQexec(conn_, create_table_query);
+        // Извлекаем поля из json
+        std::string name = j.value("name", "");
+        std::string address = j.value("address", "");
+        std::string email = j.value("email", "");
+        std::string phone = j.value("phone", "");
+        std::string tin = j.value("tin", "");
+        std::string bankDetails = j.value("bankDetails", "");
+        std::string note = j.value("note", "");
 
-        if (PQresultStatus(res) != PGRES_COMMAND_OK) 
+        const char* sql =
+            "INSERT INTO buyers_suppliers "
+            "(name, address, email, phone, tin, bank_details, note, sup) "
+            "VALUES ($1, $2, $3, $4, $5, $6, $7, $8);";
+
+        const char* params[8] = {
+            name.c_str(),
+            address.c_str(),
+            email.c_str(),
+            phone.c_str(),
+            tin.c_str(),
+            bankDetails.c_str(),
+            note.c_str(),
+            "false"
+        };
+
+        PGresult* res = PQexecParams(
+            conn_,               // соединение
+            sql,                 // сам запрос
+            8,                   // количество параметров
+            nullptr,             // типы параметров
+            params,              // сами значения
+            nullptr,             // длина
+            nullptr,             // формат
+            0                    // результат в текстовом формате
+        );
+
+        ExecStatusType status = PQresultStatus(res);
+        const char* errMsg = PQresultErrorMessage(res);
+
+        if (PQresultStatus(res) != PGRES_COMMAND_OK)
         {
-            log_file_.log("Table creation failed: {}", PQerrorMessage(conn_));
-            PQclear(res);
+            log_file_.log("add_buyers failed: {}", PQerrorMessage(conn_));
+            log_file_.log("add_buyers failed: {}", PQresultErrorMessage(res));
+        }
+        else 
+        {
+            std::cout << "add_buyers succeeded\n";
+            log_file_.log("add_buyers succeeded");
         }
 
-        log_file_.log("Table created successfully");
         PQclear(res);
-
+    }
+    catch (const nlohmann::json::parse_error& e) 
+    {
+        std::cout << "JSON parse error in add_buyers: {}\n";
+        log_file_.log("JSON parse error in add_buyers: {}", e.what());
     }
     catch (const std::exception& e) 
     {
-        log_file_.log("Exception in create_table in SqlCommander: {}", e.what());
+        std::cout << "Exception in add_buyers: {}\n";
+        log_file_.log("Exception in add_buyers: {}", e.what());
     }
 }
