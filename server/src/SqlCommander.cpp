@@ -106,6 +106,10 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
         {
             return login(payload);
         }
+        else if (type == "profileGet")
+        {
+            return get_profile(profile_id);
+        }
         else
         {
             // nya
@@ -292,24 +296,21 @@ void SqlCommander::add_suppliers(const std::string& profile_id, const std::strin
 
     if (!link_res) 
     {
-        log_file_.log("link insert: PQexecParams returned nullptr: {}", PQerrorMessage(conn_));
+        log_file_.log("add_suppliers: link insert: PQexecParams returned nullptr: {}", PQerrorMessage(conn_));
     }
     else if (PQresultStatus(link_res) != PGRES_COMMAND_OK) 
     {
-        log_file_.log("link insert failed: {}", PQresultErrorMessage(link_res));
+        log_file_.log("add_suppliers: link insert failed: {}", PQresultErrorMessage(link_res));
     }
     else 
     {
-        log_file_.log(
-            "link insert succeeded: profile_id={}, supplier_id={}",
-            profile_id, supplier_id
-        );
+        log_file_.log("add_suppliers: link insert succeeded: profile_id={}, supplier_id={}", profile_id, supplier_id);
     }
 
     PQclear(link_res);
 }
 
-std::string SqlCommander::registration(const std::string& payload) 
+std::string SqlCommander::registration(const std::string& payload)
 {
     auto req = nlohmann::json::parse(payload);
     std::string login = req.value("login", "");
@@ -339,14 +340,17 @@ std::string SqlCommander::registration(const std::string& payload)
     if (!res) 
     {
         std::string err = PQerrorMessage(conn_);
-        return "profileGet " + nlohmann::json{{"error", err}}.dump();
+
+        log_file_.log("Exception in SqlCommander registration: {}", err);
+        return "profileGet " + nlohmann::json{ {"error", err} }.dump();
     }
 
     if (PQresultStatus(res) != PGRES_TUPLES_OK) 
     {
         std::string err = PQresultErrorMessage(res);
+        log_file_.log("Exception in SqlCommander registration PQresultStatus(res) != PGRES_TUPLES_OK: {}", err);
         PQclear(res);
-        return "profileGet " + nlohmann::json{{"error", err}}.dump();
+        return "profileGet " + nlohmann::json{ {"error", err} }.dump();
     }
 
     int new_id = std::atoi(PQgetvalue(res, 0, 0));
@@ -354,9 +358,15 @@ std::string SqlCommander::registration(const std::string& payload)
 
     nlohmann::json resp = {
         {"id_user", new_id},
-        {"login",   login}
+        {"login", login},
+        {"firstName", ""},
+        {"lastName", ""},
+        {"phone", ""},
+        {"email", ""},
+        {"photoUri", ""}
     };
 
+    log_file_.log("profileGet: {}" + resp.dump());
     return "profileGet " + resp.dump();
 }
 
@@ -390,19 +400,24 @@ std::string SqlCommander::login(const std::string& payload)
     if (!res) 
     {
         std::string err = PQerrorMessage(conn_);
+        log_file_.log("Exception in SqlCommander login: {}", err);
         return "profileGet " + nlohmann::json{{"error", err}}.dump();
     }
 
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
         std::string err = PQresultErrorMessage(res);
+        log_file_.log("Exception in SqlCommander login: {}", err);
         PQclear(res);
         return "profileGet " + nlohmann::json{{"error", err}}.dump();
     }
 
     if (PQntuples(res) == 0) 
     {
+        std::string err = nlohmann::json{ {"error", "Invalid credentials"} }.dump();
         PQclear(res);
-        return "profileGet " + nlohmann::json{{"error", "Invalid credentials"}}.dump();
+        log_file_.log("Exception in SqlCommander login: {}", err);
+        return "profileGet " + err;
     }
 
     int id = std::atoi(PQgetvalue(res, 0, 0));
@@ -424,6 +439,78 @@ std::string SqlCommander::login(const std::string& payload)
         {"photouri",   pu}
     };
 
+    log_file_.log("profileGet: {}" + resp.dump());
+    return "profileGet " + resp.dump();
+}
+
+std::string SqlCommander::get_profile(const std::string& profile_id)
+{
+    if (profile_id.empty()) 
+    {
+        return "profileGet " + nlohmann::json{ {"error", "Profile ID is required"} }.dump();
+    }
+
+    static const char* sql =
+        "SELECT id_user, first_name, last_name, login, phone, email, photouri "
+        "FROM profile "
+        "WHERE id_user = $1;";
+
+    const char* params[1] = { profile_id.c_str() };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        sql,
+        1,
+        nullptr,
+        params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("Exception in SqlCommander get_profile: {}", err);
+        return "profileGet " + nlohmann::json{ {"error", err} }.dump();
+    }
+
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("Exception in SqlCommander get_profile: {}", err);
+        PQclear(res);
+        return "profileGet " + nlohmann::json{ {"error", err} }.dump();
+    }
+
+    if (PQntuples(res) == 0) 
+    {
+        std::string err = nlohmann::json{ {"error", "Profile not found"} }.dump();
+        log_file_.log("Exception in SqlCommander get_profile: {}", err);
+        PQclear(res);
+        return "profileGet " + err;
+    }
+
+    int id = std::atoi(PQgetvalue(res, 0, 0));
+    const char* fn = PQgetvalue(res, 0, 1);
+    const char* ln = PQgetvalue(res, 0, 2);
+    const char* lg = PQgetvalue(res, 0, 3);
+    const char* ph = PQgetvalue(res, 0, 4);
+    const char* em = PQgetvalue(res, 0, 5);
+    const char* pu = PQgetvalue(res, 0, 6);
+    PQclear(res);
+
+    nlohmann::json resp = {
+        {"id_user", id},
+        {"firstName", fn ? fn : ""},
+        {"lastName", ln ? ln : ""},
+        {"login", lg ? lg : ""},
+        {"phone", ph ? ph : ""},
+        {"email", em ? em : ""},
+        {"photoUri", pu ? pu : ""}
+    };
+
+    log_file_.log("profileGet: {}" + resp.dump());
     return "profileGet " + resp.dump();
 }
 

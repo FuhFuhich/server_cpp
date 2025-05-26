@@ -45,4 +45,5 @@ private:
 
     std::string registration(const std::string& payload);
     std::string login(const std::string& payload);
+    std::string get_profile(const std::string& profile_id);
 };
