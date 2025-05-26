@@ -40,10 +40,10 @@ private:
     void add_warehouses(const std::string& profile_id, const std::string& payload);
 
     // get records from db
-    //std::string get_buyers(const std::string& profile_id);
-    //std::string get_suppliers(const std::string& profile_id);
-    //std::string get_products(const std::string& profile_id);
-    //std::string get_warehouses(const std::string& profile_id);
+    std::string get_buyers(const std::string& profile_id);
+    std::string get_suppliers(const std::string& profile_id);
+    std::string get_products(const std::string& profile_id);
+    std::string get_warehouses(const std::string& profile_id);
 
     // delete records
     void delete_buyers(const std::string& profile_id, const std::string& payload);

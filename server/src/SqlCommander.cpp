@@ -106,19 +106,19 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
         }
         else if (type == "buyersGet")
         {
-            //return get_buyers(profile_id);
+            return get_buyers(profile_id);
         }
         else if (type == "suppliersGet")
         {
-            //return get_suppliers(profile_id);
+            return get_suppliers(profile_id);
         }
         else if (type == "productsGet")
         {
-            //return get_products(profile_id);
+            return get_products(profile_id);
         }
         else if (type == "warehousesGet")
         {
-            //return get_warehouses(profile_id);
+            return get_warehouses(profile_id);
         }
         else if (type == "buyersUpdate")
         {
@@ -635,24 +635,26 @@ void SqlCommander::add_products(const std::string& profile_id, const std::string
     std::string barcode = safe_string(req.value("barcode", "").c_str());
     std::string imageUri = req.value("imageUri", "") == "null" ? "" : safe_string(req.value("imageUri", "").c_str());
     int quantity = req.value("quantity", 0);
+    std::string warehouse = safe_string(req.value("warehouse", "").c_str());
 
     static const char* sql =
-        "INSERT INTO product (name, description, barcode, image_uri, quantity) "
-        "VALUES ($1, $2, $3, $4, $5) RETURNING id_product;";
+        "INSERT INTO product (name, description, barcode, imageuri, quantity, warehouse) "
+        "VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_product;";
 
     std::string quantityStr = std::to_string(quantity);
-    const char* params[5] = {
+    const char* params[6] = {
         name.c_str(),
         description.c_str(),
         barcode.c_str(),
         imageUri.empty() ? nullptr : imageUri.c_str(),
-        quantityStr.c_str()
+        quantityStr.c_str(),
+        warehouse.c_str()
     };
 
     PGresult* res = PQexecParams(
         conn_,
         sql,
-        5,
+        6,
         nullptr,
         params,
         nullptr,
@@ -983,7 +985,16 @@ void SqlCommander::update_buyers(const std::string& profile_id, const std::strin
         tin.c_str(), bankDetails.c_str(), note.c_str(), std::to_string(buyer_id).c_str()
     };
 
-    PGresult* res = PQexecParams(conn_, sql, 8, nullptr, params, nullptr, nullptr, 0);
+    PGresult* res = PQexecParams(
+        conn_, 
+        sql, 
+        8, 
+        nullptr, 
+        params, 
+        nullptr, 
+        nullptr, 
+        0
+    );
 
     if (!res) 
     {
@@ -1030,7 +1041,16 @@ void SqlCommander::update_suppliers(const std::string& profile_id, const std::st
         tin.c_str(), bankDetails.c_str(), note.c_str(), std::to_string(supplier_id).c_str()
     };
 
-    PGresult* res = PQexecParams(conn_, sql, 8, nullptr, params, nullptr, nullptr, 0);
+    PGresult* res = PQexecParams(
+        conn_, 
+        sql, 
+        8, 
+        nullptr, 
+        params, 
+        nullptr, 
+        nullptr, 
+        0
+    );
 
     if (!res)
     {
@@ -1065,19 +1085,29 @@ void SqlCommander::update_products(const std::string& profile_id, const std::str
     std::string barcode = safe_string(req.value("barcode", "").c_str());
     std::string imageUri = req.value("imageUri", "") == "null" ? "" : safe_string(req.value("imageUri", "").c_str());
     int quantity = req.value("quantity", 0);
+    std::string warehouse = safe_string(req.value("warehouse", "").c_str());
 
     static const char* sql =
-        "UPDATE product SET name = $1, description = $2, barcode = $3, image_uri = $4, "
-        "quantity = $5 WHERE id_product = $6;";
+        "UPDATE product SET name = $1, description = $2, barcode = $3, imageuri = $4, "
+        "quantity = $5, warehouse = $6 WHERE id_product = $7;";
 
     std::string quantityStr = std::to_string(quantity);
-    const char* params[6] = {
+    const char* params[7] = {
         name.c_str(), description.c_str(), barcode.c_str(),
         imageUri.empty() ? nullptr : imageUri.c_str(),
-        quantityStr.c_str(), std::to_string(product_id).c_str()
+        quantityStr.c_str(), warehouse.c_str(), std::to_string(product_id).c_str()
     };
 
-    PGresult* res = PQexecParams(conn_, sql, 6, nullptr, params, nullptr, nullptr, 0);
+    PGresult* res = PQexecParams(
+        conn_, 
+        sql, 
+        7, 
+        nullptr, 
+        params, 
+        nullptr, 
+        nullptr, 
+        0
+    );
 
     if (!res) 
     {
@@ -1094,6 +1124,7 @@ void SqlCommander::update_products(const std::string& profile_id, const std::str
 
     PQclear(res);
     log_file_.log("update_products: Product updated successfully, id: {}", product_id);
+    return;
 }
 
 void SqlCommander::update_warehouses(const std::string& profile_id, const std::string& payload)
@@ -1117,7 +1148,16 @@ void SqlCommander::update_warehouses(const std::string& profile_id, const std::s
         std::to_string(warehouse_id).c_str()
     };
 
-    PGresult* res = PQexecParams(conn_, sql, 2, nullptr, params, nullptr, nullptr, 0);
+    PGresult* res = PQexecParams(
+        conn_, 
+        sql, 
+        2, 
+        nullptr, 
+        params, 
+        nullptr, 
+        nullptr, 
+        0
+    );
 
     if (!res) 
     {
@@ -1134,4 +1174,320 @@ void SqlCommander::update_warehouses(const std::string& profile_id, const std::s
 
     PQclear(res);
     log_file_.log("update_warehouses: Warehouse updated successfully, id: {}", warehouse_id);
+}
+
+std::string SqlCommander::get_buyers(const std::string& profile_id)
+{
+    if (profile_id.empty()) 
+    {
+        log_file_.log("get_buyers: Profile ID is empty");
+        return "buyersGet []";
+    }
+
+    static const char* sql = R"(
+        SELECT bs.id_buyer, bs.name, bs.address, bs.email, bs.phone, 
+               bs.tin, bs.bank_details, bs.note
+        FROM buyers_suppliers bs
+        INNER JOIN profile_buyers pb ON bs.id_buyer = pb.buyer_id
+        WHERE pb.profile_id = $1 AND bs.sup = false
+        ORDER BY bs.name;
+    )";
+
+    const char* params[1] = { profile_id.c_str() };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        sql,
+        1,
+        nullptr,
+        params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("get_buyers: Database error: {}", err);
+        return "buyersGet []";
+    }
+
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("get_buyers: Query error: {}", err);
+        PQclear(res);
+        return "buyersGet []";
+    }
+
+    int rows = PQntuples(res);
+    std::string jsonArray = "[";
+
+    for (int i = 0; i < rows; i++) 
+    {
+        if (i > 0)
+        {
+            jsonArray += ",";
+        }
+
+        int id = std::atoi(PQgetvalue(res, i, 0));
+        std::string name = safe_string(PQgetvalue(res, i, 1));
+        std::string address = safe_string(PQgetvalue(res, i, 2));
+        std::string email = safe_string(PQgetvalue(res, i, 3));
+        std::string phone = safe_string(PQgetvalue(res, i, 4));
+        std::string tin = safe_string(PQgetvalue(res, i, 5));
+        std::string bankDetails = safe_string(PQgetvalue(res, i, 6));
+        std::string note = safe_string(PQgetvalue(res, i, 7));
+
+        jsonArray += "{";
+        jsonArray += "\"id\":" + std::to_string(id) + ",";
+        jsonArray += "\"name\":\"" + name + "\",";
+        jsonArray += "\"address\":\"" + address + "\",";
+        jsonArray += "\"email\":\"" + email + "\",";
+        jsonArray += "\"phone\":\"" + phone + "\",";
+        jsonArray += "\"tin\":\"" + tin + "\",";
+        jsonArray += "\"bankDetails\":\"" + bankDetails + "\",";
+        jsonArray += "\"note\":\"" + note + "\"";
+        jsonArray += "}";
+    }
+
+    jsonArray += "]";
+    PQclear(res);
+
+    log_file_.log("get_buyers: Found {} buyers for profile {}", rows, profile_id);
+    return "buyersGet " + jsonArray;
+}
+
+std::string SqlCommander::get_suppliers(const std::string& profile_id)
+{
+    if (profile_id.empty()) 
+    {
+        log_file_.log("get_suppliers: Profile ID is empty");
+        return "suppliersGet []";
+    }
+
+    static const char* sql = R"(
+        SELECT bs.id_buyer, bs.name, bs.address, bs.email, bs.phone, 
+               bs.tin, bs.bank_details, bs.note
+        FROM buyers_suppliers bs
+        INNER JOIN profile_suppliers ps ON bs.id_buyer = ps.supplier_id
+        WHERE ps.profile_id = $1 AND bs.sup = true
+        ORDER BY bs.name;
+    )";
+
+    const char* params[1] = { profile_id.c_str() };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        sql,
+        1,
+        nullptr,
+        params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("get_suppliers: Database error: {}", err);
+        return "suppliersGet []";
+    }
+
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("get_suppliers: Query error: {}", err);
+        PQclear(res);
+        return "suppliersGet []";
+    }
+
+    int rows = PQntuples(res);
+    std::string jsonArray = "[";
+
+    for (int i = 0; i < rows; i++) 
+    {
+        if (i > 0)
+        {
+            jsonArray += ",";
+        }
+
+        int id = std::atoi(PQgetvalue(res, i, 0));
+        std::string name = safe_string(PQgetvalue(res, i, 1));
+        std::string address = safe_string(PQgetvalue(res, i, 2));
+        std::string email = safe_string(PQgetvalue(res, i, 3));
+        std::string phone = safe_string(PQgetvalue(res, i, 4));
+        std::string tin = safe_string(PQgetvalue(res, i, 5));
+        std::string bankDetails = safe_string(PQgetvalue(res, i, 6));
+        std::string note = safe_string(PQgetvalue(res, i, 7));
+
+        jsonArray += "{";
+        jsonArray += "\"id\":" + std::to_string(id) + ",";
+        jsonArray += "\"name\":\"" + name + "\",";
+        jsonArray += "\"address\":\"" + address + "\",";
+        jsonArray += "\"email\":\"" + email + "\",";
+        jsonArray += "\"phone\":\"" + phone + "\",";
+        jsonArray += "\"tin\":\"" + tin + "\",";
+        jsonArray += "\"bankDetails\":\"" + bankDetails + "\",";
+        jsonArray += "\"note\":\"" + note + "\"";
+        jsonArray += "}";
+    }
+
+    jsonArray += "]";
+    PQclear(res);
+
+    log_file_.log("get_suppliers: Found {} suppliers for profile {}", rows, profile_id);
+    return "suppliersGet " + jsonArray;
+}
+
+std::string SqlCommander::get_products(const std::string& profile_id)
+{
+    if (profile_id.empty()) 
+    {
+        log_file_.log("get_products: Profile ID is empty");
+        return "productsGet []";
+    }
+
+    static const char* sql = R"(
+        SELECT p.id_product, p.name, p.description, p.barcode, p.imageuri, p.quantity, p.warehouse
+        FROM product p
+        INNER JOIN user_product up ON p.id_product = up.id_product
+        WHERE up.id_user = $1
+        ORDER BY p.name;
+    )";
+
+    const char* params[1] = { profile_id.c_str() };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        sql,
+        1,
+        nullptr,
+        params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("get_products: Database error: {}", err);
+        return "productsGet []";
+    }
+
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("get_products: Query error: {}", err);
+        PQclear(res);
+        return "productsGet []";
+    }
+
+    int rows = PQntuples(res);
+    std::string jsonArray = "[";
+
+    for (int i = 0; i < rows; i++) 
+    {
+        if (i > 0)
+        {
+            jsonArray += ",";
+        }
+
+        int id = std::atoi(PQgetvalue(res, i, 0));
+        std::string name = safe_string(PQgetvalue(res, i, 1));
+        std::string description = safe_string(PQgetvalue(res, i, 2));
+        std::string barcode = safe_string(PQgetvalue(res, i, 3));
+        std::string imageUri = PQgetvalue(res, i, 4) ? safe_string(PQgetvalue(res, i, 4)) : "";
+        int quantity = std::atoi(PQgetvalue(res, i, 5));
+        std::string warehouse = safe_string(PQgetvalue(res, i, 6));
+
+        jsonArray += "{";
+        jsonArray += "\"id\":" + std::to_string(id) + ",";
+        jsonArray += "\"name\":\"" + name + "\",";
+        jsonArray += "\"description\":\"" + description + "\",";
+        jsonArray += "\"barcode\":\"" + barcode + "\",";
+        jsonArray += "\"imageUri\":\"" + imageUri + "\",";
+        jsonArray += "\"quantity\":" + std::to_string(quantity) + ",";
+        jsonArray += "\"warehouse\":\"" + warehouse + "\"";
+        jsonArray += "}";
+    }
+
+    jsonArray += "]";
+    PQclear(res);
+
+    log_file_.log("get_products: Found {} products for profile {}", rows, profile_id);
+    return "productsGet " + jsonArray;
+}
+
+std::string SqlCommander::get_warehouses(const std::string& profile_id)
+{
+    if (profile_id.empty()) 
+    {
+        log_file_.log("get_warehouses: Profile ID is empty");
+        return "warehousesGet []";
+    }
+
+    static const char* sql = R"(
+        SELECT w.id_warehouse, w.warehouse_name
+        FROM warehouses w
+        INNER JOIN user_warehouse uw ON w.id_warehouse = uw.id_warehouse
+        WHERE uw.id_user = $1
+        ORDER BY w.warehouse_name;
+    )";
+
+    const char* params[1] = { profile_id.c_str() };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        sql,
+        1,
+        nullptr,
+        params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("get_warehouses: Database error: {}", err);
+        return "warehousesGet []";
+    }
+
+    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("get_warehouses: Query error: {}", err);
+        PQclear(res);
+        return "warehousesGet []";
+    }
+
+    int rows = PQntuples(res);
+    std::string jsonArray = "[";
+
+    for (int i = 0; i < rows; i++) 
+    {
+        if (i > 0)
+        {
+            jsonArray += ",";
+        }
+
+        int id = std::atoi(PQgetvalue(res, i, 0));
+        std::string warehouseName = safe_string(PQgetvalue(res, i, 1));
+
+        jsonArray += "{";
+        jsonArray += "\"id\":" + std::to_string(id) + ",";
+        jsonArray += "\"warehousesName\":\"" + warehouseName + "\"";
+        jsonArray += "}";
+    }
+
+    jsonArray += "]";
+    PQclear(res);
+
+    log_file_.log("get_warehouses: Found {} warehouses for profile {}", rows, profile_id);
+    return "warehousesGet " + jsonArray;
 }
