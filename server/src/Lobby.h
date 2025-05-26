@@ -14,17 +14,23 @@
 #include <chrono>
 #include <vector>
 #include <queue>
+#include <memory>
 
 using boost::asio::ip::tcp;
 
-class Lobby 
+struct ClientSession 
+{
+	std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws;
+	std::queue<std::shared_ptr<std::string>> write_queue;
+	bool writing = false;
+};
+
+class Lobby
 {
 public:
 	Logger log_file_;
 
 private:
-	std::queue<std::shared_ptr<std::string>> write_queue_;
-	bool writing_ = false;
 	boost::asio::ip::tcp::acceptor acceptor_;
 	BufferPool buffer_pool_;
 	SqlCommander sql_;
@@ -40,8 +46,8 @@ private:
 	void start_accept();
 	void on_accept(boost::system::error_code ec, std::shared_ptr<boost::asio::ip::tcp::socket> socket);
 	void do_websocket_session(std::shared_ptr<boost::asio::ip::tcp::socket> socket);
-	void start_read(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws);
-	void send_message(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws, const std::string& message);
+	void start_read(std::shared_ptr<ClientSession> session);
+	void send_message(std::shared_ptr<ClientSession> session, const std::string& message);
 	std::string string_splitting(std::string& request);
-	void do_write(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws);
+	void do_write(std::shared_ptr<ClientSession> session);
 };

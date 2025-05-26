@@ -23,13 +23,13 @@ Lobby::~Lobby()
     }
 }
 
-std::string Lobby::string_splitting(std::string& source) 
+std::string Lobby::string_splitting(std::string& source)
 {
     //boost::split(requests_, request, boost::is_any_of(" "), boost::token_compress_on);
 
     size_t pos = source.find(' ');
 
-    if (pos == std::string::npos) 
+    if (pos == std::string::npos)
     {
         std::string cmd = source;
         source.clear();
@@ -78,14 +78,16 @@ void Lobby::do_websocket_session(std::shared_ptr<boost::asio::ip::tcp::socket> s
 {
     // Создаем WebSocket stream поверх TCP-сокета
     auto ws = std::make_shared<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>>(std::move(*socket));
+    auto session = std::make_shared<ClientSession>();
+    session->ws = ws;
 
     // Выполняем WebSocket handshake
     ws->async_accept(
-        [this, ws](boost::system::error_code ec)
+        [this, session](boost::system::error_code ec)
         {
             if (!ec)
             {
-                start_read(ws);
+                start_read(session);
             }
             else
             {
@@ -94,16 +96,16 @@ void Lobby::do_websocket_session(std::shared_ptr<boost::asio::ip::tcp::socket> s
         });
 }
 
-void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws)
+void Lobby::start_read(std::shared_ptr<ClientSession> session)
 {
     try
     {
         auto buffer = std::make_shared<boost::beast::flat_buffer>();
 
         // Читаем WebSocket сообщение в буфер
-        ws->async_read(
+        session->ws->async_read(
             *buffer,
-            [this, ws, buffer](boost::system::error_code ec, std::size_t length)
+            [this, session, buffer](boost::system::error_code ec, std::size_t length)
             {
                 if (!ec)
                 {
@@ -120,18 +122,19 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
                     profile_id = string_splitting(payload);
 
                     std::string reply = sql_.execute_sql_command(type, profile_id == "-1" ? "" : profile_id, payload);
+                    log_file_.log("SQL команда вернула: '{}'", reply);
 
                     if (!reply.empty())
                     {
-                        send_message(ws, reply);
+                        send_message(session, reply);
                     }
 
-                    this->start_read(ws);
+                    this->start_read(session);
                 }
                 else
                 {
                     log_file_.log("SOCKET is close");
-                    ws->next_layer().close();
+                    session->ws->next_layer().close();
                     log_file_.log("Client disconnect: {}", ec.message());
                 }
             });
@@ -142,44 +145,46 @@ void Lobby::start_read(std::shared_ptr<boost::beast::websocket::stream<boost::as
     }
 }
 
-void Lobby::do_write(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws)
+void Lobby::do_write(std::shared_ptr<ClientSession> session)
 {
-    if (write_queue_.empty()) 
+    if (session->write_queue.empty())
     {
-        writing_ = false;
+        session->writing = false;
         return;
     }
 
-    writing_ = true;
-    auto buffer = write_queue_.front();
+    session->writing = true;
+    auto buffer = session->write_queue.front();
 
-    ws->async_write(
+    session->ws->async_write(
         boost::asio::buffer(*buffer),
-        [this, ws, buffer](boost::system::error_code ec, std::size_t)
+        [this, session, buffer](boost::system::error_code ec, std::size_t bytes_sent)
         {
-            write_queue_.pop();
+            session->write_queue.pop();
 
             if (!ec)
             {
                 log_file_.log("Message sent to client: {}", *buffer);
+                log_file_.log("Отправлено байт: {}", bytes_sent);
             }
             else
             {
                 log_file_.log("Failed to send message: {}", ec.message());
             }
 
-            do_write(ws); // Доходим до конца очереди, чтобы все отправилось
+            do_write(session); // Доходим до конца очереди, чтобы все отправилось
         });
 }
 
-void Lobby::send_message(std::shared_ptr<boost::beast::websocket::stream<boost::asio::ip::tcp::socket>> ws, const std::string& message)
+void Lobby::send_message(std::shared_ptr<ClientSession> session, const std::string& message)
 {
+    log_file_.log("Попытка отправить сообщение: {}", message);
     auto buffer = std::make_shared<std::string>(message);
-    write_queue_.push(buffer);
+    session->write_queue.push(buffer);
 
     // Если уже отправляется сообщение, то мы просто добавили в очередь отправки
-    if (!writing_) 
+    if (!session->writing)
     {
-        do_write(ws);
+        do_write(session);
     }
 }
