@@ -33,6 +33,28 @@ SqlCommander::~SqlCommander()
     }
 }
 
+std::string SqlCommander::safe_string(const char* str)
+{
+    if (!str)
+    {
+        return "";
+    }
+
+    std::string result;
+
+    for (const char* p = str; *p; ++p) 
+    {
+        unsigned char c = static_cast<unsigned char>(*p);
+
+        if (c >= 32 && c <= 126) 
+        {
+            result += c;
+        }
+    }
+
+    return result;
+}
+
 std::map<std::string, std::string> SqlCommander::load_env(const std::string& filename)
 {
     std::map<std::string, std::string> env;
@@ -366,11 +388,11 @@ std::string SqlCommander::registration(const std::string& payload)
         {"photoUri", ""}
     };
 
-    log_file_.log("profileGet: {}" + resp.dump());
+    log_file_.log("profileGet: {}", resp.dump());
     return "profileGet " + resp.dump();
 }
 
-std::string SqlCommander::login(const std::string& payload) 
+std::string SqlCommander::login(const std::string& payload)
 {
     auto req = nlohmann::json::parse(payload);
     std::string login = req.value("login", "");
@@ -397,50 +419,50 @@ std::string SqlCommander::login(const std::string& payload)
         0
     );
 
-    if (!res) 
+    if (!res)
     {
         std::string err = PQerrorMessage(conn_);
-        log_file_.log("Exception in SqlCommander login: {}", err);
-        return "profileGet " + nlohmann::json{{"error", err}}.dump();
+        log_file_.log("Database error in login: {}", err);
+        return "profileGet {\"error\":\"Database error\"}";
     }
 
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         std::string err = PQresultErrorMessage(res);
-        log_file_.log("Exception in SqlCommander login: {}", err);
+        log_file_.log("Query error in login: {}", err);
         PQclear(res);
-        return "profileGet " + nlohmann::json{{"error", err}}.dump();
+        return "profileGet {\"error\":\"Query error\"}";
     }
 
-    if (PQntuples(res) == 0) 
+    if (PQntuples(res) == 0)
     {
-        std::string err = nlohmann::json{ {"error", "Invalid credentials"} }.dump();
+        log_file_.log("Invalid credentials for user: {}", login);
         PQclear(res);
-        log_file_.log("Exception in SqlCommander login: {}", err);
-        return "profileGet " + err;
+        return "profileGet {\"error\":\"Invalid credentials\"}";
     }
 
     int id = std::atoi(PQgetvalue(res, 0, 0));
-    const char* fn = PQgetvalue(res, 0, 1);
-    const char* ln = PQgetvalue(res, 0, 2);
-    const char* lg = PQgetvalue(res, 0, 3);
-    const char* ph = PQgetvalue(res, 0, 4);
-    const char* em = PQgetvalue(res, 0, 5);
-    const char* pu = PQgetvalue(res, 0, 6);
+    std::string fn = safe_string(PQgetvalue(res, 0, 1));
+    std::string ln = safe_string(PQgetvalue(res, 0, 2));
+    std::string lg = safe_string(PQgetvalue(res, 0, 3));
+    std::string ph = safe_string(PQgetvalue(res, 0, 4));
+    std::string em = safe_string(PQgetvalue(res, 0, 5));
+    std::string pu = safe_string(PQgetvalue(res, 0, 6));
     PQclear(res);
 
-    nlohmann::json resp = {
-        {"id_user",    id},
-        {"first_name", fn},
-        {"last_name",  ln},
-        {"login",      lg},
-        {"phone",      ph},
-        {"email",      em},
-        {"photouri",   pu}
-    };
+    std::string response = "profileGet {";
+    response += "\"id_user\":" + std::to_string(id) + ",";
+    response += "\"firstName\":\"" + fn + "\",";
+    response += "\"lastName\":\"" + ln + "\",";
+    response += "\"login\":\"" + lg + "\",";
+    response += "\"phone\":\"" + ph + "\",";
+    response += "\"email\":\"" + em + "\",";
+    response += "\"photoUri\":\"" + pu + "\"";
+    response += "}";
 
-    log_file_.log("profileGet: {}" + resp.dump());
-    return "profileGet " + resp.dump();
+    log_file_.log("SqlCommander login successful for user: {}", login);
+    log_file_.log("SqlCommander login Response: {}", response);
+    return response;
 }
 
 std::string SqlCommander::get_profile(const std::string& profile_id)
@@ -510,7 +532,6 @@ std::string SqlCommander::get_profile(const std::string& profile_id)
         {"photoUri", pu ? pu : ""}
     };
 
-    log_file_.log("profileGet: {}" + resp.dump());
+    log_file_.log("profileGet: {}", resp.dump());
     return "profileGet " + resp.dump();
 }
-

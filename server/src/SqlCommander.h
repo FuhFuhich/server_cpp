@@ -30,6 +30,8 @@ public:
 
 private:
     std::map<std::string, std::string> load_env(const std::string& filename);
+    std::string safe_string(const char* str);
+
 
     // add new records in some table
     void add_buyers(const std::string& profile_id, const std::string& payload);
@@ -46,4 +48,5 @@ private:
     std::string registration(const std::string& payload);
     std::string login(const std::string& payload);
     std::string get_profile(const std::string& profile_id);
+
 };
