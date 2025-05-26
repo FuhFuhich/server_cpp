@@ -132,6 +132,10 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
         {
             return get_profile(profile_id);
         }
+        else if (type == "profileUpdate ")
+        {
+            profile_update(profile_id, payload);
+        }
         else
         {
             // nya
@@ -534,4 +538,58 @@ std::string SqlCommander::get_profile(const std::string& profile_id)
 
     log_file_.log("profileGet: {}", resp.dump());
     return "profileGet " + resp.dump();
+}
+
+void SqlCommander::profile_update(const std::string& profile_id, const std::string& payload)
+{
+    auto req = nlohmann::json::parse(payload);
+
+    std::string firstName = safe_string(req.value("firstName", "").c_str());
+    std::string lastName = safe_string(req.value("lastName", "").c_str());
+    std::string login = safe_string(req.value("login", "").c_str());
+    std::string phone = safe_string(req.value("phone", "").c_str());
+    std::string email = safe_string(req.value("email", "").c_str());
+    std::string photoUri = safe_string(req.value("photoUri", "").c_str());
+
+    static const char* sql =
+        "UPDATE profile SET first_name = $1, last_name = $2, login = $3, phone = $4, email = $5, photouri = $6 WHERE id_user = $7;";
+
+    const char* params[7] = {
+        firstName.c_str(),
+        lastName.c_str(),
+        login.c_str(),
+        phone.c_str(),
+        email.c_str(),
+        photoUri.c_str(),
+        profile_id.c_str()
+    };
+
+    PGresult* res = PQexecParams(
+        conn_,
+        sql,
+        7,
+        nullptr,
+        params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("Database error in profile_update: {}", err);
+        return;
+    }
+
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) 
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("Query error in profile_update: {}", err);
+        PQclear(res);
+        return;
+    }
+
+    PQclear(res);
+    log_file_.log("Profile updated successfully for user: {}", profile_id);
 }
