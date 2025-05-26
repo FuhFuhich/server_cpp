@@ -109,14 +109,12 @@ void Lobby::start_read(std::shared_ptr<ClientSession> session)
             {
                 if (!ec)
                 {
-                    // Формат отправки сообщения:
-                    // <Название метода внутри SqlCommander для обращения к бд> <requestId> <Данные для метода внутри SqlCommander> ... <Данные для метода внутри SqlCommander>
                     std::string type = "";
                     std::string profile_id = "";
 
                     payload = boost::beast::buffers_to_string(buffer->data());
                     log_file_.log("Received: {}", payload);
-                    std::cout << "connection successful\n" << payload << "\n\n";
+                    std::cout << payload << "\n";
 
                     type = string_splitting(payload);
                     profile_id = string_splitting(payload);

@@ -36,14 +36,26 @@ private:
     // add new records in some table
     void add_buyers(const std::string& profile_id, const std::string& payload);
     void add_suppliers(const std::string& profile_id, const std::string& payload);
-    //void add_products(std::string& request_);
-    //void add_warehouses(std::string& request_);
+    void add_products(const std::string& profile_id, const std::string& payload);
+    void add_warehouses(const std::string& profile_id, const std::string& payload);
 
     // get records from db
-    //std::string get_buyers();
-    //std::string get_suppliers();
-    //std::string get_products();
-    //std::string get_warehouses();
+    //std::string get_buyers(const std::string& profile_id);
+    //std::string get_suppliers(const std::string& profile_id);
+    //std::string get_products(const std::string& profile_id);
+    //std::string get_warehouses(const std::string& profile_id);
+
+    // delete records
+    void delete_buyers(const std::string& profile_id, const std::string& payload);
+    void delete_suppliers(const std::string& profile_id, const std::string& payload);
+    void delete_products(const std::string& profile_id, const std::string& payload);
+    void delete_warehouses(const std::string& profile_id, const std::string& payload);
+
+    // update records
+    void update_buyers(const std::string& profile_id, const std::string& payload);
+    void update_suppliers(const std::string& profile_id, const std::string& payload);
+    void update_products(const std::string& profile_id, const std::string& payload);
+    void update_warehouses(const std::string& profile_id, const std::string& payload);
 
     std::string registration(const std::string& payload);
     std::string login(const std::string& payload);
