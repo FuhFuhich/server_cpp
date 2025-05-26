@@ -554,6 +554,8 @@ void SqlCommander::profile_update(const std::string& profile_id, const std::stri
     static const char* sql =
         "UPDATE profile SET first_name = $1, last_name = $2, login = $3, phone = $4, email = $5, photouri = $6 WHERE id_user = $7;";
 
+    std::cout << "\n" << sql << "\n";
+
     const char* params[7] = {
         firstName.c_str(),
         lastName.c_str(),
@@ -578,6 +580,7 @@ void SqlCommander::profile_update(const std::string& profile_id, const std::stri
     if (!res) 
     {
         std::string err = PQerrorMessage(conn_);
+        std::cout << PQerrorMessage(conn_) << "\n";
         log_file_.log("Exception in SqlCommander profile_update Database error in profile_update: {}", err);
         return;
     }
@@ -585,6 +588,7 @@ void SqlCommander::profile_update(const std::string& profile_id, const std::stri
     if (PQresultStatus(res) != PGRES_COMMAND_OK) 
     {
         std::string err = PQresultErrorMessage(res);
+        std::cout << PQresultErrorMessage(res) << "\n";
         log_file_.log("Exception in SqlCommander profile_update Query error in profile_update: {}", err);
         PQclear(res);
         return;
