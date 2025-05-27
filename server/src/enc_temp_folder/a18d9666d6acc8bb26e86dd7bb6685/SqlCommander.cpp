@@ -120,10 +120,6 @@ std::string SqlCommander::execute_sql_command(const std::string& type, const std
         {
             return get_warehouses(profile_id);
         }
-        else if (type == "warehousesGetWithQuantity")
-        {
-            return get_warehouses_with_quantity(profile_id);
-        }
         else if (type == "buyersUpdate")
         {
             update_buyers(profile_id, payload);
@@ -1673,80 +1669,5 @@ std::string SqlCommander::get_warehouses(const std::string& profile_id)
     PQclear(res);
 
     log_file_.log("get_warehouses: Found {} warehouses for profile {}", rows, profile_id);
-    return "warehousesGet " + jsonArray;
-}
-
-std::string SqlCommander::get_warehouses_with_quantity(const std::string& profile_id)
-{
-    if (profile_id.empty())
-    {
-        log_file_.log("get_warehouses_with_quantity: Profile ID is empty");
-        return "warehousesGet []";
-    }
-
-    static const char* sql = R"(
-        SELECT w.id_warehouse, w.warehouses_name,
-               COALESCE(SUM(p.quantity), 0) as total_quantity
-        FROM warehouses w
-        INNER JOIN user_warehouse uw ON w.id_warehouse = uw.id_warehouse
-        LEFT JOIN products p ON w.id_warehouse = p.warehouse
-        WHERE uw.id_user = $1
-        GROUP BY w.id_warehouse, w.warehouses_name
-        ORDER BY w.warehouses_name;
-    )";
-
-    const char* params[1] = { profile_id.c_str() };
-
-    PGresult* res = PQexecParams(
-        conn_,
-        sql,
-        1,
-        nullptr,
-        params,
-        nullptr,
-        nullptr,
-        0
-    );
-
-    if (!res)
-    {
-        std::string err = PQerrorMessage(conn_);
-        log_file_.log("get_warehouses_with_quantity: Database error: {}", err);
-        return "warehousesGet []";
-    }
-
-    if (PQresultStatus(res) != PGRES_TUPLES_OK)
-    {
-        std::string err = PQresultErrorMessage(res);
-        log_file_.log("get_warehouses_with_quantity: Query error: {}", err);
-        PQclear(res);
-        return "warehousesGet []";
-    }
-
-    int rows = PQntuples(res);
-    std::string jsonArray = "[";
-
-    for (int i = 0; i < rows; i++)
-    {
-        if (i > 0)
-        {
-            jsonArray += ",";
-        }
-
-        int id = std::atoi(PQgetvalue(res, i, 0));
-        std::string warehouseName = safe_string(PQgetvalue(res, i, 1));
-        int totalQuantity = std::atoi(PQgetvalue(res, i, 2));
-
-        jsonArray += "{";
-        jsonArray += "\"id\":" + std::to_string(id) + ",";
-        jsonArray += "\"warehousesName\":\"" + warehouseName + "\",";
-        jsonArray += "\"totalQuantity\":" + std::to_string(totalQuantity);
-        jsonArray += "}";
-    }
-
-    jsonArray += "]";
-    PQclear(res);
-
-    log_file_.log("get_warehouses_with_quantity: Found {} warehouses for profile {}", rows, profile_id);
     return "warehousesGet " + jsonArray;
 }

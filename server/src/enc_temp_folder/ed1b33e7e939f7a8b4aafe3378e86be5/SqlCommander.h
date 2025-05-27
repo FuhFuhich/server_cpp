@@ -44,7 +44,6 @@ private:
     std::string get_suppliers(const std::string& profile_id);
     std::string get_products(const std::string& profile_id);
     std::string get_warehouses(const std::string& profile_id);
-    std::string get_warehouses_with_quantity(const std::string& profile_id);
 
     // delete records
     void delete_buyers(const std::string& profile_id, const std::string& payload);
@@ -58,7 +57,6 @@ private:
     void update_products(const std::string& profile_id, const std::string& payload);
     void update_warehouses(const std::string& profile_id, const std::string& payload);
 
-    // registration and login
     std::string registration(const std::string& payload);
     std::string login(const std::string& payload);
     std::string get_profile(const std::string& profile_id);
