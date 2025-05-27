@@ -195,6 +195,9 @@ void SqlCommander::add_buyers(const std::string& profile_id, const std::string& 
     std::string bankDetails = safe_string(req.value("bankDetails", "").c_str());
     std::string note = safe_string(req.value("note", "").c_str());
 
+    log_file_.log("=== ADDING BUYER ===");
+    log_file_.log("Profile ID: {}, Name: {}", profile_id, name);
+
     static const char* sql =
         "INSERT INTO buyers_suppliers (name, address, email, phone, tin, bank_details, note, sup) "
         "VALUES ($1, $2, $3, $4, $5, $6, $7, false) RETURNING id_buyer;";
@@ -215,14 +218,14 @@ void SqlCommander::add_buyers(const std::string& profile_id, const std::string& 
         0
     );
 
-    if (!res) 
+    if (!res)
     {
         std::string err = PQerrorMessage(conn_);
         log_file_.log("Database error in add_buyers: {}", err);
         return;
     }
 
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         std::string err = PQresultErrorMessage(res);
         log_file_.log("Query error in add_buyers: {}", err);
@@ -233,13 +236,18 @@ void SqlCommander::add_buyers(const std::string& profile_id, const std::string& 
     int buyer_id = std::atoi(PQgetvalue(res, 0, 0));
     PQclear(res);
 
+    log_file_.log("Buyer inserted with ID: {}", buyer_id);
+
     static const char* sql_link =
         "INSERT INTO user_buyers_suppliers (id_user, id_buyer) VALUES ($1, $2);";
 
+    std::string buyer_id_str = std::to_string(buyer_id);
     const char* link_params[2] = {
         profile_id.c_str(),
-        std::to_string(buyer_id).c_str()
+        buyer_id_str.c_str()
     };
+
+    log_file_.log("Inserting link: user_id={}, buyer_id={}", profile_id, buyer_id);
 
     res = PQexecParams(
         conn_,
@@ -252,12 +260,23 @@ void SqlCommander::add_buyers(const std::string& profile_id, const std::string& 
         0
     );
 
-    if (res) 
+    if (!res)
     {
-        PQclear(res);
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("Database error in add_buyers link: {}", err);
+        return;
     }
 
-    log_file_.log("Buyer added successfully for profile: {}", profile_id);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("Query error in add_buyers link: {}", err);
+        PQclear(res);
+        return;
+    }
+
+    PQclear(res);
+    log_file_.log("Buyer and link added successfully for profile: {}", profile_id);
 }
 
 void SqlCommander::add_suppliers(const std::string& profile_id, const std::string& payload)
@@ -271,6 +290,9 @@ void SqlCommander::add_suppliers(const std::string& profile_id, const std::strin
     std::string tin = safe_string(req.value("tin", "").c_str());
     std::string bankDetails = safe_string(req.value("bankDetails", "").c_str());
     std::string note = safe_string(req.value("note", "").c_str());
+
+    log_file_.log("=== ADDING SUPPLIER ===");
+    log_file_.log("Profile ID: {}, Name: {}", profile_id, name);
 
     static const char* sql =
         "INSERT INTO buyers_suppliers (name, address, email, phone, tin, bank_details, note, sup) "
@@ -292,14 +314,14 @@ void SqlCommander::add_suppliers(const std::string& profile_id, const std::strin
         0
     );
 
-    if (!res) 
+    if (!res)
     {
         std::string err = PQerrorMessage(conn_);
         log_file_.log("Database error in add_suppliers: {}", err);
         return;
     }
 
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         std::string err = PQresultErrorMessage(res);
         log_file_.log("Query error in add_suppliers: {}", err);
@@ -310,13 +332,18 @@ void SqlCommander::add_suppliers(const std::string& profile_id, const std::strin
     int supplier_id = std::atoi(PQgetvalue(res, 0, 0));
     PQclear(res);
 
-    static const char* sql_link =
-        "INSERT INTO user_buyers_suppliers (profile_id, buyer_supplier_id) VALUES ($1, $2);";
+    log_file_.log("Supplier inserted with ID: {}", supplier_id);
 
+    static const char* sql_link =
+        "INSERT INTO user_buyers_suppliers (id_user, id_buyer) VALUES ($1, $2);";
+
+    std::string supplier_id_str = std::to_string(supplier_id);
     const char* link_params[2] = {
         profile_id.c_str(),
-        std::to_string(supplier_id).c_str()
+        supplier_id_str.c_str()
     };
+
+    log_file_.log("Inserting link: user_id={}, supplier_id={}", profile_id, supplier_id);
 
     res = PQexecParams(
         conn_,
@@ -329,12 +356,23 @@ void SqlCommander::add_suppliers(const std::string& profile_id, const std::strin
         0
     );
 
-    if (res) 
+    if (!res)
     {
-        PQclear(res);
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("Database error in add_suppliers link: {}", err);
+        return;
     }
 
-    log_file_.log("Supplier added successfully for profile: {}", profile_id);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("Query error in add_suppliers link: {}", err);
+        PQclear(res);
+        return;
+    }
+
+    PQclear(res);
+    log_file_.log("Supplier and link added successfully for profile: {}", profile_id);
 }
 
 void SqlCommander::add_products(const std::string& profile_id, const std::string& payload)
@@ -353,6 +391,9 @@ void SqlCommander::add_products(const std::string& profile_id, const std::string
 
     int quantity = req.value("quantity", 0);
     std::string warehouse = safe_string(req.value("warehouse", "").c_str());
+
+    log_file_.log("=== ADDING PRODUCT ===");
+    log_file_.log("Profile ID: {}, Name: {}", profile_id, name);
 
     static const char* sql =
         "INSERT INTO product (name, description, barcode, imageuri, quantity, warehouse) "
@@ -397,13 +438,18 @@ void SqlCommander::add_products(const std::string& profile_id, const std::string
     int product_id = std::atoi(PQgetvalue(res, 0, 0));
     PQclear(res);
 
+    log_file_.log("Product inserted with ID: {}", product_id);
+
     static const char* sql_link =
         "INSERT INTO user_product (id_user, id_product) VALUES ($1, $2);";
 
+    std::string product_id_str = std::to_string(product_id);
     const char* link_params[2] = {
         profile_id.c_str(),
-        std::to_string(product_id).c_str()
+        product_id_str.c_str()
     };
+
+    log_file_.log("Inserting link: user_id={}, product_id={}", profile_id, product_id);
 
     res = PQexecParams(
         conn_,
@@ -416,12 +462,23 @@ void SqlCommander::add_products(const std::string& profile_id, const std::string
         0
     );
 
-    if (res)
+    if (!res)
     {
-        PQclear(res);
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("Database error in add_products link: {}", err);
+        return;
     }
 
-    log_file_.log("Product added successfully for profile: {}", profile_id);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("Query error in add_products link: {}", err);
+        PQclear(res);
+        return;
+    }
+
+    PQclear(res);
+    log_file_.log("Product and link added successfully for profile: {}", profile_id);
 }
 
 void SqlCommander::add_warehouses(const std::string& profile_id, const std::string& payload)
@@ -429,6 +486,9 @@ void SqlCommander::add_warehouses(const std::string& profile_id, const std::stri
     auto req = nlohmann::json::parse(payload);
 
     std::string warehouseName = safe_string(req.value("warehousesName", "").c_str());
+
+    log_file_.log("=== ADDING WAREHOUSE ===");
+    log_file_.log("Profile ID: {}, Name: {}", profile_id, warehouseName);
 
     static const char* sql =
         "INSERT INTO warehouses (warehouses_name) "
@@ -467,13 +527,18 @@ void SqlCommander::add_warehouses(const std::string& profile_id, const std::stri
     int warehouse_id = std::atoi(PQgetvalue(res, 0, 0));
     PQclear(res);
 
+    log_file_.log("Warehouse inserted with ID: {}", warehouse_id);
+
     static const char* sql_link =
         "INSERT INTO user_warehouse (id_user, id_warehouse) VALUES ($1, $2);";
 
+    std::string warehouse_id_str = std::to_string(warehouse_id);
     const char* link_params[2] = {
         profile_id.c_str(),
-        std::to_string(warehouse_id).c_str()
+        warehouse_id_str.c_str()
     };
+
+    log_file_.log("Inserting link: user_id={}, warehouse_id={}", profile_id, warehouse_id);
 
     res = PQexecParams(
         conn_,
@@ -486,12 +551,23 @@ void SqlCommander::add_warehouses(const std::string& profile_id, const std::stri
         0
     );
 
-    if (res)
+    if (!res)
     {
-        PQclear(res);
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("Database error in add_warehouses link: {}", err);
+        return;
     }
 
-    log_file_.log("Warehouse added successfully for profile: {}", profile_id);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        std::string err = PQresultErrorMessage(res);
+        log_file_.log("Query error in add_warehouses link: {}", err);
+        PQclear(res);
+        return;
+    }
+
+    PQclear(res);
+    log_file_.log("Warehouse and link added successfully for profile: {}", profile_id);
 }
 
 std::string SqlCommander::registration(const std::string& payload)
