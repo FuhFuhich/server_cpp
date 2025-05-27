@@ -576,22 +576,84 @@ std::string SqlCommander::registration(const std::string& payload)
     std::string login = req.value("login", "");
     std::string password = req.value("password", "");
 
-    static const char* sql =
+    log_file_.log("=== REGISTRATION ATTEMPT ===");
+    log_file_.log("Login: {}", login);
+
+    if (login.empty() || password.empty()) 
+    {
+        log_file_.log("Registration failed: empty login or password");
+        return "profileGet " + nlohmann::json{ {"error", "Заполните все поля"} }.dump();
+    }
+
+    if (login.length() < 3) 
+    {
+        log_file_.log("Registration failed: login too short");
+        return "profileGet " + nlohmann::json{ {"error", "Логин должен содержать минимум 3 символа"} }.dump();
+    }
+
+    if (password.length() < 3) 
+    {
+        log_file_.log("Registration failed: password too short");
+        return "profileGet " + nlohmann::json{ {"error", "Пароль должен содержать минимум 3 символа"} }.dump();
+    }
+
+    static const char* check_sql =
+        "SELECT login FROM profile WHERE login = $1;";
+
+    const char* check_params[1] = { login.c_str() };
+
+    PGresult* check_res = PQexecParams(
+        conn_,
+        check_sql,
+        1,
+        nullptr,
+        check_params,
+        nullptr,
+        nullptr,
+        0
+    );
+
+    if (!check_res) 
+    {
+        std::string err = PQerrorMessage(conn_);
+        log_file_.log("Database error in registration check: {}", err);
+        return "profileGet " + nlohmann::json{ {"error", "Ошибка базы данных"} }.dump();
+    }
+
+    if (PQresultStatus(check_res) != PGRES_TUPLES_OK) 
+    {
+        std::string err = PQresultErrorMessage(check_res);
+        log_file_.log("Query error in registration check: {}", err);
+        PQclear(check_res);
+        return "profileGet " + nlohmann::json{ {"error", "Ошибка запроса"} }.dump();
+    }
+
+    if (PQntuples(check_res) > 0) 
+    {
+        log_file_.log("Registration failed: login already exists: {}", login);
+        PQclear(check_res);
+        return "profileGet " + nlohmann::json{ {"error", "Такой логин уже существует"} }.dump();
+    }
+
+    PQclear(check_res);
+    log_file_.log("Login is available, creating new user");
+
+    static const char* insert_sql =
         "INSERT INTO profile (login, password) "
         "VALUES ($1, $2) "
         "RETURNING id_user;";
 
-    const char* params[2] = {
+    const char* insert_params[2] = {
         login.c_str(),
         password.c_str()
     };
 
     PGresult* res = PQexecParams(
         conn_,
-        sql,
+        insert_sql,
         2,
         nullptr,
-        params,
+        insert_params,
         nullptr,
         nullptr,
         0
@@ -600,17 +662,16 @@ std::string SqlCommander::registration(const std::string& payload)
     if (!res) 
     {
         std::string err = PQerrorMessage(conn_);
-
-        log_file_.log("Exception in SqlCommander registration: {}", err);
-        return "profileGet " + nlohmann::json{ {"error", err} }.dump();
+        log_file_.log("Database error in registration insert: {}", err);
+        return "profileGet " + nlohmann::json{ {"error", "Ошибка создания пользователя"} }.dump();
     }
 
     if (PQresultStatus(res) != PGRES_TUPLES_OK) 
     {
         std::string err = PQresultErrorMessage(res);
-        log_file_.log("Exception in SqlCommander registration PQresultStatus(res) != PGRES_TUPLES_OK: {}", err);
+        log_file_.log("Query error in registration insert: {}", err);
         PQclear(res);
-        return "profileGet " + nlohmann::json{ {"error", err} }.dump();
+        return "profileGet " + nlohmann::json{ {"error", "Ошибка создания пользователя"} }.dump();
     }
 
     int new_id = std::atoi(PQgetvalue(res, 0, 0));
@@ -626,9 +687,11 @@ std::string SqlCommander::registration(const std::string& payload)
         {"photoUri", ""}
     };
 
-    log_file_.log("profileGet: {}", resp.dump());
+    log_file_.log("Registration successful for user: {}, ID: {}", login, new_id);
+    log_file_.log("Response: {}", resp.dump());
     return "profileGet " + resp.dump();
 }
+
 
 std::string SqlCommander::login(const std::string& payload)
 {
@@ -974,22 +1037,89 @@ void SqlCommander::delete_warehouses(const std::string& profile_id, const std::s
         return;
     }
 
+    log_file_.log("=== DELETING WAREHOUSE ===");
+    log_file_.log("Profile ID: {}, Warehouse ID: {}", profile_id, warehouse_id);
+
+    std::string warehouse_id_str = std::to_string(warehouse_id);
+
+    static const char* delete_product_links_sql = R"(
+            DELETE FROM user_product 
+            WHERE id_product IN (
+                SELECT p.id_product 
+                FROM product p 
+                INNER JOIN warehouses w ON p.warehouse = w.warehouses_name 
+                WHERE w.id_warehouse = $1
+            );
+        )";
+
+    const char* warehouse_params1[1] = { warehouse_id_str.c_str() };
+    PGresult* res = PQexecParams(conn_, delete_product_links_sql, 1, nullptr, warehouse_params1, nullptr, nullptr, 0);
+
+    if (res)
+    {
+        if (PQresultStatus(res) != PGRES_COMMAND_OK)
+        {
+            std::string err = PQresultErrorMessage(res);
+            log_file_.log("delete_warehouses: Error deleting product links: {}", err);
+        }
+        else {
+            int affected_rows = std::atoi(PQcmdTuples(res));
+            log_file_.log("Deleted {} product links", affected_rows);
+        }
+        PQclear(res);
+    }
+
+    static const char* delete_products_sql = R"(
+            DELETE FROM product 
+            WHERE warehouse = (
+                SELECT warehouses_name 
+                FROM warehouses 
+                WHERE id_warehouse = $1
+            );
+        )";
+
+    const char* warehouse_params2[1] = { warehouse_id_str.c_str() };
+    res = PQexecParams(conn_, delete_products_sql, 1, nullptr, warehouse_params2, nullptr, nullptr, 0);
+
+    if (res)
+    {
+        if (PQresultStatus(res) != PGRES_COMMAND_OK)
+        {
+            std::string err = PQresultErrorMessage(res);
+            log_file_.log("delete_warehouses: Error deleting products: {}", err);
+        }
+        else {
+            int affected_rows = std::atoi(PQcmdTuples(res));
+            log_file_.log("Deleted {} products from warehouse", affected_rows);
+        }
+        PQclear(res);
+    }
+
     static const char* delete_link_sql =
         "DELETE FROM user_warehouse WHERE id_user = $1 AND id_warehouse = $2;";
 
     const char* link_params[2] = {
         profile_id.c_str(),
-        std::to_string(warehouse_id).c_str()
+        warehouse_id_str.c_str()
     };
 
-    PGresult* res = PQexecParams(conn_, delete_link_sql, 2, nullptr, link_params, nullptr, nullptr, 0);
-    if (res) PQclear(res);
+    res = PQexecParams(conn_, delete_link_sql, 2, nullptr, link_params, nullptr, nullptr, 0);
+
+    if (res)
+    {
+        if (PQresultStatus(res) != PGRES_COMMAND_OK)
+        {
+            std::string err = PQresultErrorMessage(res);
+            log_file_.log("delete_warehouses link error: {}", err);
+        }
+        PQclear(res);
+    }
 
     static const char* delete_warehouse_sql =
         "DELETE FROM warehouses WHERE id_warehouse = $1;";
 
-    const char* warehouse_params[1] = { std::to_string(warehouse_id).c_str() };
-    res = PQexecParams(conn_, delete_warehouse_sql, 1, nullptr, warehouse_params, nullptr, nullptr, 0);
+    const char* warehouse_params3[1] = { warehouse_id_str.c_str() };
+    res = PQexecParams(conn_, delete_warehouse_sql, 1, nullptr, warehouse_params3, nullptr, nullptr, 0);
 
     if (!res)
     {
@@ -1005,7 +1135,7 @@ void SqlCommander::delete_warehouses(const std::string& profile_id, const std::s
     }
 
     PQclear(res);
-    log_file_.log("delete_warehouses: Warehouse deleted successfully, id: {}", warehouse_id);
+    log_file_.log("delete_warehouses: Warehouse and related products deleted successfully, id: {}", warehouse_id);
 }
 
 void SqlCommander::update_buyers(const std::string& profile_id, const std::string& payload)
