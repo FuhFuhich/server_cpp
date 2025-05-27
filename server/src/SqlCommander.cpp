@@ -579,22 +579,22 @@ std::string SqlCommander::registration(const std::string& payload)
     log_file_.log("=== REGISTRATION ATTEMPT ===");
     log_file_.log("Login: {}", login);
 
-    if (login.empty() || password.empty()) 
+    if (login.empty() || password.empty())
     {
         log_file_.log("Registration failed: empty login or password");
-        return "profileGet " + nlohmann::json{ {"error", "Заполните все поля"} }.dump();
+        return "profileGet {\"error\":\"Empty fields\"}";
     }
 
-    if (login.length() < 3) 
+    if (login.length() < 3)
     {
         log_file_.log("Registration failed: login too short");
-        return "profileGet " + nlohmann::json{ {"error", "Логин должен содержать минимум 3 символа"} }.dump();
+        return "profileGet {\"error\":\"Login too short\"}";
     }
 
-    if (password.length() < 3) 
+    if (password.length() < 3)
     {
         log_file_.log("Registration failed: password too short");
-        return "profileGet " + nlohmann::json{ {"error", "Пароль должен содержать минимум 3 символа"} }.dump();
+        return "profileGet {\"error\":\"Password too short\"}";
     }
 
     static const char* check_sql =
@@ -613,26 +613,26 @@ std::string SqlCommander::registration(const std::string& payload)
         0
     );
 
-    if (!check_res) 
+    if (!check_res)
     {
         std::string err = PQerrorMessage(conn_);
         log_file_.log("Database error in registration check: {}", err);
-        return "profileGet " + nlohmann::json{ {"error", "Ошибка базы данных"} }.dump();
+        return "profileGet {\"error\":\"Database error\"}";
     }
 
-    if (PQresultStatus(check_res) != PGRES_TUPLES_OK) 
+    if (PQresultStatus(check_res) != PGRES_TUPLES_OK)
     {
         std::string err = PQresultErrorMessage(check_res);
         log_file_.log("Query error in registration check: {}", err);
         PQclear(check_res);
-        return "profileGet " + nlohmann::json{ {"error", "Ошибка запроса"} }.dump();
+        return "profileGet {\"error\":\"Query error\"}";
     }
 
-    if (PQntuples(check_res) > 0) 
+    if (PQntuples(check_res) > 0)
     {
         log_file_.log("Registration failed: login already exists: {}", login);
         PQclear(check_res);
-        return "profileGet " + nlohmann::json{ {"error", "Такой логин уже существует"} }.dump();
+        return "profileGet {\"error\":\"Login already exists\"}";
     }
 
     PQclear(check_res);
@@ -659,39 +659,38 @@ std::string SqlCommander::registration(const std::string& payload)
         0
     );
 
-    if (!res) 
+    if (!res)
     {
         std::string err = PQerrorMessage(conn_);
         log_file_.log("Database error in registration insert: {}", err);
-        return "profileGet " + nlohmann::json{ {"error", "Ошибка создания пользователя"} }.dump();
+        return "profileGet {\"error\":\"Create user error\"}";
     }
 
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) 
+    if (PQresultStatus(res) != PGRES_TUPLES_OK)
     {
         std::string err = PQresultErrorMessage(res);
         log_file_.log("Query error in registration insert: {}", err);
         PQclear(res);
-        return "profileGet " + nlohmann::json{ {"error", "Ошибка создания пользователя"} }.dump();
+        return "profileGet {\"error\":\"Create user error\"}";
     }
 
     int new_id = std::atoi(PQgetvalue(res, 0, 0));
     PQclear(res);
 
-    nlohmann::json resp = {
-        {"id_user", new_id},
-        {"login", login},
-        {"firstName", ""},
-        {"lastName", ""},
-        {"phone", ""},
-        {"email", ""},
-        {"photoUri", ""}
-    };
+    std::string response = "profileGet {";
+    response += "\"id_user\":" + std::to_string(new_id) + ",";
+    response += "\"login\":\"" + login + "\",";
+    response += "\"firstName\":\"\",";
+    response += "\"lastName\":\"\",";
+    response += "\"phone\":\"\",";
+    response += "\"email\":\"\",";
+    response += "\"photoUri\":\"\"";
+    response += "}";
 
     log_file_.log("Registration successful for user: {}, ID: {}", login, new_id);
-    log_file_.log("Response: {}", resp.dump());
-    return "profileGet " + resp.dump();
+    log_file_.log("Response: {}", response);
+    return response;
 }
-
 
 std::string SqlCommander::login(const std::string& payload)
 {
