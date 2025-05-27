@@ -1689,7 +1689,7 @@ std::string SqlCommander::get_warehouses_with_quantity(const std::string& profil
                COALESCE(SUM(p.quantity), 0) as total_quantity
         FROM warehouses w
         INNER JOIN user_warehouse uw ON w.id_warehouse = uw.id_warehouse
-        LEFT JOIN products p ON w.id_warehouse = p.warehouse
+        LEFT JOIN product p ON w.warehouses_name = p.warehouse
         WHERE uw.id_user = $1
         GROUP BY w.id_warehouse, w.warehouses_name
         ORDER BY w.warehouses_name;
