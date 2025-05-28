@@ -41,6 +41,6 @@ target_link_libraries(warehouse_server
     nlohmann_json::nlohmann_json
 )
 
-configure_file(${CMAKE_SOURCE_DIR}/.env ${CMAKE_BINARY_DIR}/.env COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/server/src/config.env ${CMAKE_BINARY_DIR}/config.env COPYONLY)
 
 install(TARGETS warehouse_server DESTINATION bin)
