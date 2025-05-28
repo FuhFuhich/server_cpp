@@ -7,7 +7,7 @@ int main()
 		setlocale(0, "");
 
 		boost::asio::io_context io_context;
-		short port = 5400;
+		short port = 5401;
 		Lobby Lobby(io_context, port);
 
 		std::vector<std::thread> threads;
