@@ -17,7 +17,7 @@ include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${PostgreSQL_INCLUDE_DIRS})
 
 set(SOURCES
-    main.cpp
+    server.cpp
     Lobby.cpp
     Logger.cpp
     SqlCommander.cpp
