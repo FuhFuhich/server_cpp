@@ -1,5 +1,4 @@
 ﻿#include "Lobby.h"
-#include "logger.h"
 
 int main()
 {
